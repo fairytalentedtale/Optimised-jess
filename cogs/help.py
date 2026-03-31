@@ -47,6 +47,12 @@ class Help(commands.Cog):
             )
 
             embed.add_field(
+                name="🔷 Type & Region Pings",
+                value=f"`{prefix}help pings` - Get pinged by Pokemon type or region",
+                inline=False
+            )
+
+            embed.add_field(
                 name="⚙️ Settings",
                 value=f"`{prefix}help settings` - Configure bot settings",
                 inline=False
@@ -292,10 +298,13 @@ class Help(commands.Cog):
             embed.add_field(
                 name=f"`{prefix}afk`",
                 value=(
-                    "Toggle collection and shiny hunt pings using interactive buttons\n"
+                    "Toggle pings using interactive buttons — **4 toggles available:**\n"
                     f"**Aliases:** `{prefix}away`\n"
-                    "🟢 **Green** = Pings ON (you'll be pinged)\n"
-                    "🔴 **Red** = Pings OFF (you won't be pinged)\n"
+                    "🟢 **Green** = Pings ON  •  🔴 **Red** = Pings OFF\n"
+                    "• **ShinyHunt** — shiny hunt pings\n"
+                    "• **Collection** — collection pings\n"
+                    "• **TypePings** — type-based pings\n"
+                    "• **RegionPings** — region-based pings\n"
                     "*AFK status is global across all servers*"
                 ),
                 inline=False
@@ -357,6 +366,89 @@ class Help(commands.Cog):
                 inline=False
             )
 
+            embed.add_field(
+                name=f"`{prefix}toggle best_name`",
+                value=(
+                    "Enable/disable the **Shortest Name** line in predictions (off by default)\n"
+                    "When enabled, shows the shortest known name for each Pokemon\n"
+                    f"**Example:** `{prefix}toggle best_name`"
+                ),
+                inline=False
+            )
+
+        # Type & Region Pings category
+        elif category in ["pings", "ping", "typepings", "regionpings", "tp", "rp"]:
+            embed = discord.Embed(
+                title="🔷 Type & Region Ping Commands",
+                description="Get pinged whenever a Pokemon of a specific type or from a specific region spawns!",
+                color=EMBED_COLOR
+            )
+
+            embed.add_field(
+                name=f"`{prefix}tp`",
+                value=(
+                    "Open the interactive **Type Pings** menu with toggle buttons\n"
+                    f"**Aliases:** `{prefix}typepings`, `{prefix}typeping`\n"
+                    "🟢 Green = enabled  •  ⚫ Grey = disabled\n"
+                    "All 18 types available: Normal, Fire, Water, Electric, Grass, Ice, Fighting, Poison, Ground, Flying, Psychic, Bug, Rock, Ghost, Dragon, Dark, Steel, Fairy"
+                ),
+                inline=False
+            )
+
+            embed.add_field(
+                name=f"`{prefix}tp <types>`",
+                value=(
+                    "Directly toggle one or more types without opening the menu\n"
+                    f"**Examples:**\n"
+                    f"• `{prefix}tp bug` — toggle Bug\n"
+                    f"• `{prefix}tp bug grass fire` — toggle Bug, Grass and Fire at once\n"
+                    "If a type was OFF it turns ON, if it was ON it turns OFF"
+                ),
+                inline=False
+            )
+
+            embed.add_field(
+                name=f"`{prefix}rp`",
+                value=(
+                    "Open the interactive **Region Pings** menu with toggle buttons\n"
+                    f"**Aliases:** `{prefix}regionpings`, `{prefix}regionping`\n"
+                    "🟢 Green = enabled  •  ⚫ Grey = disabled\n"
+                    "All 9 regions available: Kanto, Johto, Hoenn, Sinnoh, Unova, Kalos, Alola, Galar, Paldea"
+                ),
+                inline=False
+            )
+
+            embed.add_field(
+                name=f"`{prefix}rp <regions>`",
+                value=(
+                    "Directly toggle one or more regions without opening the menu\n"
+                    f"**Examples:**\n"
+                    f"• `{prefix}rp kanto` — toggle Kanto\n"
+                    f"• `{prefix}rp kanto johto hoenn` — toggle multiple regions at once"
+                ),
+                inline=False
+            )
+
+            embed.add_field(
+                name="🔕 AFK for Type/Region Pings",
+                value=(
+                    f"Use `{prefix}afk` and click the **TypePings** or **RegionPings** button\n"
+                    "to temporarily suppress these pings globally across all servers"
+                ),
+                inline=False
+            )
+
+            embed.add_field(
+                name="💡 How It Works",
+                value=(
+                    "• Type and region settings are **per-server** — set them separately in each server\n"
+                    "• When a Pokemon spawns, the bot checks its types/region against your preferences\n"
+                    "• You'll be mentioned in the prediction output under **Type Pings** or **Region Pings**\n"
+                    "• Uses `data/typeandregions.csv` for accurate type/region data"
+                ),
+                inline=False
+            )
+
         # Prediction category
         elif category in ["prediction", "predict", "pred"]:
             embed = discord.Embed(
@@ -387,10 +479,17 @@ class Help(commands.Cog):
             embed.add_field(
                 name="🤖 Auto-Detection",
                 value=(
-                    "The bot automatically predicts Poketwo spawns and pings:\n"
-                    "• **Shiny hunters** hunting that Pokemon\n"
-                    "• **Collectors** who have collected that Pokemon\n"
-                    "• **Rare/Regional roles** if applicable"
+                    "The bot automatically predicts Poketwo spawns and shows:\n"
+                    "```\n"
+                    "Charizard: 94.21%\n"
+                    "Shortest Name: Glurak       ← if enabled\n"
+                    "Rare Ping: @role\n"
+                    "Regional Pings: @role\n"
+                    "Shiny Hunters: @user\n"
+                    "Collectors: @user\n"
+                    "Type Pings: @user\n"
+                    "Region Pings: @user\n"
+                    "```"
                 ),
                 inline=False
             )
@@ -498,6 +597,25 @@ class Help(commands.Cog):
             )
 
             embed.add_field(
+                name=f"`{prefix}loadmodel`",
+                value=(
+                    "Load the AI prediction models into RAM\n"
+                    "Run this before starting an incense session\n"
+                    "⚠️ Increases memory usage significantly"
+                ),
+                inline=False
+            )
+
+            embed.add_field(
+                name=f"`{prefix}unloadmodel`",
+                value=(
+                    "Unload the AI prediction models from RAM\n"
+                    "Run this after finishing an incense session to free memory"
+                ),
+                inline=False
+            )
+
+            embed.add_field(
                 name=f"`{prefix}set-low-prediction-channel #channel`",
                 value=(
                     "Set global channel for low confidence predictions (< 90%)\n"
@@ -578,10 +696,19 @@ class Help(commands.Cog):
             )
 
             embed.add_field(
+                name="🔷 Type & Region Pings",
+                value=(
+                    f"`{prefix}tp` • `{prefix}tp <types>`\n"
+                    f"`{prefix}rp` • `{prefix}rp <regions>`"
+                ),
+                inline=False
+            )
+
+            embed.add_field(
                 name="⚙️ Settings",
                 value=(
                     f"`{prefix}afk` • `{prefix}server-settings`\n"
-                    f"**Admin:** `{prefix}rare-role` • `{prefix}regional-role` • `{prefix}only-pings`"
+                    f"**Admin:** `{prefix}rare-role` • `{prefix}regional-role` • `{prefix}only-pings` • `{prefix}toggle best_name`"
                 ),
                 inline=False
             )
@@ -612,6 +739,7 @@ class Help(commands.Cog):
                 embed.add_field(
                     name="👑 Owner",
                     value=(
+                        f"`{prefix}loadmodel` • `{prefix}unloadmodel`\n"
                         f"`{prefix}set-low-prediction-channel`\n"
                         f"`{prefix}set-secondary-model-channel`\n"
                         f"`{prefix}starboard-set-global-catch/egg/unbox`"
@@ -628,7 +756,7 @@ class Help(commands.Cog):
         else:
             await ctx.reply(
                 f"❌ Unknown category: `{category}`\n"
-                f"Available categories: `collection`, `category`, `hunt`, `settings`, `prediction`, `starboard`, {'`owner`, ' if is_owner else ''}`all`\n"
+                f"Available categories: `collection`, `category`, `hunt`, `pings`, `settings`, `prediction`, `starboard`, {'`owner`, ' if is_owner else ''}`all`\n"
                 f"Use `{prefix}help` to see the main help menu.",
                 mention_author=False
             )
@@ -654,10 +782,12 @@ class Help(commands.Cog):
                 "• 📦 **Collection Management** - Track and get pinged for Pokemon you collect\n"
                 "• 🗂️ **Category System** - Bulk add Pokemon to collection\n"
                 "• ✨ **Shiny Hunting** - Get notified when your hunt target spawns\n"
+                "• 🔷 **Type & Region Pings** - Get pinged by Pokemon type or region\n"
                 "• 🔮 **Dual Model Prediction** - Automatically identifies Poketwo spawns\n"
                 "• ⭐ **Starboard Logging** - Log rare catches, hatches, and unboxes\n"
-                "• 🎯 **Smart Pings** - Collectors, hunters, and role-based pings\n"
-                "• 🔕 **AFK Mode** - Disable pings when you're away"
+                "• 🎯 **Smart Pings** - Collectors, hunters, type, region, and role-based pings\n"
+                "• 🔕 **AFK Mode** - Disable pings when you're away\n"
+                "• 🏷️ **Best Name** - Optionally show shortest known name per prediction"
             ),
             inline=False
         )
