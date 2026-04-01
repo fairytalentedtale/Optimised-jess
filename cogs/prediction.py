@@ -131,6 +131,7 @@ class Prediction(commands.Cog):
         self.pokemon_data = load_pokemon_data()
         self.gcache = GuildCache(bot.db)   # in-memory TTL cache — replaces per-spawn DB queries
         bot.db.gcache = self.gcache        # lets DB mutation methods auto-invalidate cache
+        self._bg_tasks: set = set()        # tracks fire-and-forget tasks so they're not GC'd early
         _load_best_names()        # warm cache on startup
         _load_type_region_data()  # warm cache on startup
         print(f"[AUTO-PREDICT] Channel ID set to: {AUTO_PREDICT_CHANNEL_ID}")
@@ -146,6 +147,13 @@ class Prediction(commands.Cog):
     @property
     def http_session(self):
         return self.bot.http_session
+
+    def _create_bg_task(self, coro):
+        """Fire-and-forget a coroutine, keeping a reference so it isn't GC'd prematurely."""
+        task = asyncio.create_task(coro)
+        self._bg_tasks.add(task)
+        task.add_done_callback(self._bg_tasks.discard)
+        return task
 
     # ------------------------------------------------------------------
     # Image extraction
@@ -502,9 +510,9 @@ class Prediction(commands.Cog):
                         output = await self.build_prediction_output(
                             name, confidence, message.guild.id, show_best_name=show_best
                         )
-                        await message.reply(output, allowed_mentions=NO_MENTIONS)
+                        await message.channel.send(output, allowed_mentions=NO_MENTIONS)
 
-                        asyncio.create_task(self.log_secondary_model_prediction(
+                        self._create_bg_task(self.log_secondary_model_prediction(
                             name, confidence, model_used, message, image_url
                         ))
 
@@ -525,8 +533,7 @@ class Prediction(commands.Cog):
                 embed = message.embeds[0]
                 if embed.title:
                     if (embed.title == "A wild pokémon has appeared!" or
-                            (embed.title.endswith("A new wild pokémon has appeared!") and
-                             "fled." in embed.title)):
+                            embed.title.endswith("A new wild pokémon has appeared!")):
 
                         image_url = await self.extract_image_url(message)
 
@@ -592,8 +599,6 @@ class Prediction(commands.Cog):
 
                                             await message.channel.send(
                                                 "\n".join(lines),
-                                                reference=message,
-                                                mention_author=False,
                                                 allowed_mentions=SAFE_MENTIONS
                                             )
 
@@ -625,7 +630,7 @@ class Prediction(commands.Cog):
                                                     ))
                                                     await low_channel.send(embed=low_embed, view=low_view)
 
-                                        asyncio.create_task(self.log_secondary_model_prediction(
+                                        self._create_bg_task(self.log_secondary_model_prediction(
                                             name, confidence, model_used, message, image_url
                                         ))
 
