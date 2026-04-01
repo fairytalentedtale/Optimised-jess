@@ -29,7 +29,8 @@ bot = commands.Bot(
     command_prefix=get_prefix,
     intents=intents,
     help_command=None,
-    case_insensitive=True
+    case_insensitive=True,
+    max_messages=None   # disable message cache — bot never looks up past messages
 )
 
 # Global instances
