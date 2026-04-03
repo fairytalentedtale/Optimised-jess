@@ -48,7 +48,7 @@ SECONDARY_METADATA_PATH = os.path.join(CACHE_DIR, "model_metadata.json")
 # Otherwise try secondary model if >= SECONDARY_CONFIDENCE_THRESHOLD.
 # If neither meets their threshold, fall back to the primary result anyway.
 # -----------------------------------------------------------------------
-PRIMARY_CONFIDENCE_THRESHOLD   = 90.0  # %
+PRIMARY_CONFIDENCE_THRESHOLD   = 94.0  # %
 SECONDARY_CONFIDENCE_THRESHOLD = 90.0  # %
 
 
