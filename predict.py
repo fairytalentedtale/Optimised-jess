@@ -42,6 +42,15 @@ SECONDARY_ONNX_PATH = os.path.join(CACHE_DIR, "poketwo_pokemon_model.onnx")
 SECONDARY_ONNX_DATA_PATH = os.path.join(CACHE_DIR, "poketwo_pokemon_model.onnx.data")
 SECONDARY_METADATA_PATH = os.path.join(CACHE_DIR, "model_metadata.json")
 
+# -----------------------------------------------------------------------
+# Confidence thresholds — edit these to tune prediction behaviour
+# If primary model confidence >= PRIMARY_CONFIDENCE_THRESHOLD, use it directly.
+# Otherwise try secondary model if >= SECONDARY_CONFIDENCE_THRESHOLD.
+# If neither meets their threshold, fall back to the primary result anyway.
+# -----------------------------------------------------------------------
+PRIMARY_CONFIDENCE_THRESHOLD   = 90.0  # %
+SECONDARY_CONFIDENCE_THRESHOLD = 90.0  # %
+
 
 class PredictionCache:
     """Ultra-lightweight cache - ONLY stores final results"""
@@ -431,19 +440,19 @@ class Prediction:
             primary_confidence_pct   = primary_prob   * 100
             secondary_confidence_pct = secondary_prob * 100
 
-            if primary_confidence_pct >= 85.0:
+            if primary_confidence_pct >= PRIMARY_CONFIDENCE_THRESHOLD:
                 confidence = f"{primary_confidence_pct:.2f}%"
                 self.cache.set(cache_key, (primary_name, confidence, "primary"))
                 self._maybe_gc()
                 return primary_name, confidence
 
-            if secondary_confidence_pct >= 90.0:
+            if secondary_confidence_pct >= SECONDARY_CONFIDENCE_THRESHOLD:
                 confidence = f"{secondary_confidence_pct:.2f}%"
                 self.cache.set(cache_key, (secondary_name, confidence, "secondary"))
                 self._maybe_gc()
                 return secondary_name, confidence
 
-            # Fallback to primary result
+            # Both models below threshold — fall back to primary result
             confidence = f"{primary_confidence_pct:.2f}%"
             self.cache.set(cache_key, (primary_name, confidence, "primary_fallback"))
             self._maybe_gc()
