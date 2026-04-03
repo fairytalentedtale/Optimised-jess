@@ -18062,6 +18062,24 @@
     "rarity": "legendary"
   },
   {
+    "dex_number": 69,
+    "name": "Beta Bellsprout",
+    "other_names": {
+      "🇬🇧": "Event Bellsprout"
+    },
+    "is_variant": true,
+    "variant_of": "Bellsprout"
+  },
+  {
+    "dex_number": 153,
+    "name": "Beta Bayleef",
+    "other_names": {
+      "🇬🇧": "Event Bayleef"
+    },
+    "is_variant": true,
+    "variant_of": "Bayleef"
+  },
+  {
     "dex_number": 1025,
     "name": "Pecharunt",
     "other_names": {
