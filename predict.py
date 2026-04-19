@@ -77,14 +77,14 @@ SECONDARY_REPO_LFS = "https://media.githubusercontent.com/media/cynthiaofpower/m
 
 # .onnx files are stored in Git LFS — must use media URL
 # .json files are plain text — use raw URL
-PRIMARY_ONNX_URL     = f"{PRIMARY_REPO_LFS}/myfinalmodel.onnx"
-PRIMARY_LABELS_URL   = f"{PRIMARY_REPO_RAW}/labels.json"
+PRIMARY_ONNX_URL     = f"{PRIMARY_REPO_LFS}/new_model.onnx"
+PRIMARY_LABELS_URL   = f"{PRIMARY_REPO_RAW}/new_labels.json"
 SECONDARY_ONNX_URL   = f"{SECONDARY_REPO_LFS}/event.onnx"
 SECONDARY_LABELS_URL = f"{SECONDARY_REPO_RAW}/event_labels.json"
 
 CACHE_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "model_cache")
-PRIMARY_ONNX_PATH    = os.path.join(CACHE_DIR, "myfinalmodel.onnx")
-PRIMARY_LABELS_PATH  = os.path.join(CACHE_DIR, "labels.json")
+PRIMARY_ONNX_PATH    = os.path.join(CACHE_DIR, "new_model.onnx")
+PRIMARY_LABELS_PATH  = os.path.join(CACHE_DIR, "new_labels.json")
 SECONDARY_ONNX_PATH  = os.path.join(CACHE_DIR, "event.onnx")
 SECONDARY_LABELS_PATH = os.path.join(CACHE_DIR, "event_labels.json")
 
