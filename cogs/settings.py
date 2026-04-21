@@ -1,4 +1,5 @@
 """Server and user settings management"""
+import asyncio
 import discord
 from discord.ext import commands
 from config import EMBED_COLOR, Emojis
@@ -313,6 +314,105 @@ class Settings(commands.Cog):
             await ctx.reply("❌ Only the bot owner can use this command.", mention_author=False)
         elif isinstance(error, commands.BadArgument):
             await ctx.reply("❌ Invalid channel mention or ID.", mention_author=False)
+
+    # ------------------------------------------------------------------
+    # p!clear-server-pings  (bot owner / server owner / admin only)
+    # ------------------------------------------------------------------
+    @commands.command(name="clear-server-pings", aliases=["csp", "clearserverpings", "resetpings"])
+    async def clear_server_pings_command(self, ctx, target: discord.Member = None):
+        """Clear all ping data (collections, shiny hunts, type pings, region pings)
+        for a specific user OR every user in this server.
+
+        Usage:
+            p!clear-server-pings           → clears ALL users in this server
+            p!clear-server-pings @user     → clears only that user in this server
+        """
+        # ── Permission check ───────────────────────────────────────────
+        is_owner     = await self.bot.is_owner(ctx.author)
+        is_srv_owner = ctx.author.id == ctx.guild.owner_id
+        is_admin     = ctx.author.guild_permissions.administrator
+
+        if not (is_owner or is_srv_owner or is_admin):
+            await ctx.reply(
+                "❌ You need to be the server owner, an administrator, or the bot owner to use this command.",
+                mention_author=False
+            )
+            return
+
+        guild_id = ctx.guild.id
+        db       = self.db.db   # raw Motor database
+
+        # ── Confirmation prompt ────────────────────────────────────────
+        if target:
+            prompt_text = (
+                f"⚠️ This will clear **all ping data** for {target.mention} in **{ctx.guild.name}**.\n"
+                f"Reply with `confirm` within 30 seconds to proceed."
+            )
+        else:
+            prompt_text = (
+                f"⚠️ This will clear **all ping data for every user** in **{ctx.guild.name}**.\n"
+                f"Reply with `confirm` within 30 seconds to proceed."
+            )
+
+        await ctx.reply(prompt_text, mention_author=False)
+
+        def check(m):
+            return m.author.id == ctx.author.id and m.channel.id == ctx.channel.id
+
+        try:
+            msg = await self.bot.wait_for("message", check=check, timeout=30)
+        except asyncio.TimeoutError:
+            await ctx.send("❌ Confirmation timed out. No data was cleared.")
+            return
+
+        if msg.content.strip().lower() != "confirm":
+            await ctx.send("❌ Cancelled. No data was cleared.")
+            return
+
+        # ── Clear data ─────────────────────────────────────────────────
+        if target:
+            col_res  = await db.collections.delete_many({"user_id": target.id, "guild_id": guild_id})
+            shy_res  = await db.shiny_hunts.delete_many({"user_id": target.id, "guild_id": guild_id})
+            type_res = await db.type_pings.delete_many( {"user_id": target.id, "guild_id": guild_id})
+            rgn_res  = await db.region_pings.delete_many({"user_id": target.id, "guild_id": guild_id})
+
+            embed = discord.Embed(title="✅ User Ping Data Cleared", color=EMBED_COLOR)
+            embed.add_field(name="User",         value=target.mention,                   inline=False)
+            embed.add_field(name="Server",       value=ctx.guild.name,                   inline=False)
+            embed.add_field(name="Collections",  value=f"{col_res.deleted_count} removed",  inline=True)
+            embed.add_field(name="Shiny Hunts",  value=f"{shy_res.deleted_count} removed",  inline=True)
+            embed.add_field(name="Type Pings",   value=f"{type_res.deleted_count} removed", inline=True)
+            embed.add_field(name="Region Pings", value=f"{rgn_res.deleted_count} removed",  inline=True)
+
+        else:
+            col_res  = await db.collections.delete_many( {"guild_id": guild_id})
+            shy_res  = await db.shiny_hunts.delete_many( {"guild_id": guild_id})
+            type_res = await db.type_pings.delete_many(  {"guild_id": guild_id})
+            rgn_res  = await db.region_pings.delete_many({"guild_id": guild_id})
+
+            embed = discord.Embed(title="✅ Server Ping Data Cleared", color=EMBED_COLOR)
+            embed.add_field(name="Server",       value=ctx.guild.name,                   inline=False)
+            embed.add_field(name="Collections",  value=f"{col_res.deleted_count} removed",  inline=True)
+            embed.add_field(name="Shiny Hunts",  value=f"{shy_res.deleted_count} removed",  inline=True)
+            embed.add_field(name="Type Pings",   value=f"{type_res.deleted_count} removed", inline=True)
+            embed.add_field(name="Region Pings", value=f"{rgn_res.deleted_count} removed",  inline=True)
+
+        # ── Invalidate cache ───────────────────────────────────────────
+        if self.db.gcache:
+            self.db.gcache.invalidate_collectors(guild_id)
+            self.db.gcache.invalidate_shiny_hunts(guild_id)
+            self.db.gcache.invalidate_afk()
+
+        embed.set_footer(text=f"Cleared by {ctx.author} • Guild ID: {guild_id}")
+        await ctx.reply(embed=embed, mention_author=False)
+
+    @clear_server_pings_command.error
+    async def clear_server_pings_error(self, ctx, error):
+        if isinstance(error, commands.BadArgument):
+            await ctx.reply(
+                "❌ Couldn't find that user. Use a @mention or user ID.",
+                mention_author=False
+            )
 
 
 async def setup(bot):
