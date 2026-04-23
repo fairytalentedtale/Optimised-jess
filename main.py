@@ -132,6 +132,8 @@ async def on_ready():
         'cogs.type_region',
         'cogs.shiny_hunt',
         'cogs.settings',
+        'cogs.spawnrate',
+        'cogs.hint_solver',
         'cogs.prediction',
         'cogs.category',
         'cogs.starboard_settings',
