@@ -41,17 +41,21 @@ def build_hint_regex(hint: str) -> re.Pattern:
 def extract_hint(message_content: str) -> Optional[str]:
     """
     Pull the hint pattern out of a Pokétwo message such as:
-        'The pokémon is V_ro__.'
-    Returns the raw hint string (e.g. 'V_ro__') or None if not found.
+        'The pokémon is \\_\\_\\_v\\_tar.'
+    Pokétwo escapes underscores as \\_ to prevent Discord italic formatting,
+    so we unescape them back to plain _ before returning.
+    Returns the raw hint string (e.g. '___v_tar') or None if not found.
     """
-    # Match the standard Pokétwo hint format in any language direction
     match = re.search(
         r"[Tt]he\s+pok[eé]mon\s+is\s+(.+?)\.",
         message_content,
         re.IGNORECASE | re.DOTALL,
     )
     if match:
-        return match.group(1).strip()
+        hint = match.group(1).strip()
+        # Unescape Discord markdown: \_ → _
+        hint = hint.replace("\\_", "_")
+        return hint
     return None
 
 
@@ -124,55 +128,35 @@ class HintSolver(commands.Cog):
 
         if not matches:
             await message.reply(
-                f"🔍 Hint: `{hint}` — no matching Pokémon found.",
+                f"🔍 No matching Pokémon found for `{hint}`.",
                 mention_author=False,
             )
             return
 
         if len(matches) == 1:
-            poke = matches[0]["pokemon"]
+            english_name = matches[0]["pokemon"].get("name", matches[0]["matched_name"])
             matched_name = matches[0]["matched_name"]
-            english_name = poke.get("name", matched_name)
-            dex = poke.get("dex_number", "?")
-
-            embed = discord.Embed(
-                title=f"💡 It's **{english_name}**!",
-                color=discord.Color.gold(),
-            )
-            embed.add_field(name="Pokédex #", value=f"#{dex}", inline=True)
-            embed.add_field(name="Hint", value=f"`{hint}`", inline=True)
-
-            # Show the matched non-English name if the hint was in another language
             if matched_name.lower() != english_name.lower():
-                embed.add_field(
-                    name="Matched name",
-                    value=matched_name,
-                    inline=True,
+                await message.reply(
+                    f"It's **{english_name}** ({matched_name})",
+                    mention_author=False,
                 )
-
-            embed.set_thumbnail(url=f"https://cdn.poketwo.net/images/{dex}.png")
-            await message.reply(embed=embed, mention_author=False)
+            else:
+                await message.reply(f"It's **{english_name}**", mention_author=False)
 
         else:
-            # Multiple candidates — list them all
-            lines = []
+            parts = []
             for m in matches:
-                poke = m["pokemon"]
-                english_name = poke.get("name", m["matched_name"])
-                dex = poke.get("dex_number", "?")
+                english_name = m["pokemon"].get("name", m["matched_name"])
                 matched_name = m["matched_name"]
-
-                line = f"• **{english_name}** (#{dex})"
                 if matched_name.lower() != english_name.lower():
-                    line += f" — matched as *{matched_name}*"
-                lines.append(line)
-
-            embed = discord.Embed(
-                title=f"💡 {len(matches)} possible matches for `{hint}`",
-                description="\n".join(lines),
-                color=discord.Color.orange(),
+                    parts.append(f"{english_name} ({matched_name})")
+                else:
+                    parts.append(english_name)
+            await message.reply(
+                f"It's one of these: **{', '.join(parts)}**",
+                mention_author=False,
             )
-            await message.reply(embed=embed, mention_author=False)
 
 
 async def setup(bot: commands.Bot):
