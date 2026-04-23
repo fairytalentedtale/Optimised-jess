@@ -134,7 +134,7 @@ class SpawnRate(commands.Cog):
                 color=discord.Color.green(),
             )
             embed.set_thumbnail(url=image_url)
-            embed.add_field(name="Pokédex #", value=f"#{dex_num}", inline=True)
+            embed.add_field(name="CDN", value=f"#{dex_num}", inline=True)
             embed.add_field(name="Spawn Chance", value=chance, inline=True)
             embed.add_field(name="Percentage", value=chance_pct, inline=True)
 
