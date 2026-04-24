@@ -13,7 +13,7 @@ class Help(commands.Cog):
     async def help_command(self, ctx, category: str = None):
         """Show help information
 
-        Categories: collection, category, hunt, settings, prediction, starboard, owner, all
+        Categories: collection, category, hunt, settings, prediction, starboard, helpful, owner, all
         """
         prefix = BOT_PREFIX[0]  # Use first prefix for examples
 
@@ -67,6 +67,12 @@ class Help(commands.Cog):
             embed.add_field(
                 name="⭐ Starboard",
                 value=f"`{prefix}help starboard` - Configure starboard channels",
+                inline=False
+            )
+
+            embed.add_field(
+                name="🔍 Helpful Commands",
+                value=f"`{prefix}help helpful` - Spawn rates, shiny rates & hint solver",
                 inline=False
             )
 
@@ -498,9 +504,12 @@ class Help(commands.Cog):
                 name="📊 Dual Model System",
                 value=(
                     "Bot uses two AI models for accuracy:\n"
-                    "• **Primary model** (224x224) - Fast predictions\n"
-                    "• **Secondary model** (336x224) - Used for low confidence cases\n"
-                    "Predictions with ≥90% confidence are posted automatically"
+                    "• **Primary model** (224×224) — runs on every spawn\n"
+                    "• **Secondary model** (224×224) — runs in parallel; used when primary confidence < 94%\n"
+                    "• If primary ≥ **94%** → primary result is used\n"
+                    "• If secondary ≥ **90%** → secondary result is used\n"
+                    "• If both are below threshold → primary result is used as fallback\n"
+                    "• Some Pokémon (e.g. Oricorio forms) always prefer the secondary model result"
                 ),
                 inline=False
             )
@@ -584,6 +593,53 @@ class Help(commands.Cog):
                 inline=False
             )
 
+        # Helpful commands
+        elif category in ["helpful", "util", "utils", "tools"]:
+            embed = discord.Embed(
+                title="🔍 Helpful Commands",
+                description="Useful utility commands for Pokétwo players",
+                color=EMBED_COLOR
+            )
+
+            embed.add_field(
+                name=f"`{prefix}spawnrate <pokemon>` / `{prefix}sr <pokemon>`",
+                value=(
+                    "Show the wild spawn rate for a Pokémon\n"
+                    f"**Aliases:** `{prefix}sr`\n"
+                    f"**Examples:**\n"
+                    f"• `{prefix}sr geodude`\n"
+                    f"• `{prefix}sr Garchomp`\n"
+                    "Also available as a slash command: `/spawnrate`"
+                ),
+                inline=False
+            )
+
+            embed.add_field(
+                name=f"`{prefix}shinyrate [chain] [target%]` / `{prefix}shr`",
+                value=(
+                    "Show per-encounter shiny rates at a given chain, or calculate what chain you need to hit a target chance — both with and without Shiny Charm\n"
+                    f"**Aliases:** `{prefix}shr`\n"
+                    f"**Examples:**\n"
+                    f"• `{prefix}shr` — show usage + rates at chain 0\n"
+                    f"• `{prefix}shr 50` — shiny rates at chain 50\n"
+                    f"• `{prefix}shr 89%` — chain needed for 89% per-encounter chance\n"
+                    f"• `{prefix}shr 50 89%` — both at once\n"
+                    "Also available as a slash command: `/shinyrate`"
+                ),
+                inline=False
+            )
+
+            embed.add_field(
+                name="🔎 Hint Solver (Automatic)",
+                value=(
+                    "When Pokétwo sends a hint message, the bot automatically replies with the matching Pokémon name(s)\n"
+                    "• Supports hints in **all languages** (English, Japanese, etc.)\n"
+                    "• If multiple Pokémon match, all candidates are listed\n"
+                    "• No command needed — just wait for Pokétwo's hint!"
+                ),
+                inline=False
+            )
+
         # Owner commands
         elif category in ["owner", "admin", "botowner"]:
             if not is_owner:
@@ -599,7 +655,8 @@ class Help(commands.Cog):
             embed.add_field(
                 name=f"`{prefix}loadmodel`",
                 value=(
-                    "Load the AI prediction models into RAM\n"
+                    "Download (if needed) and load the AI prediction models into RAM\n"
+                    f"**Aliases:** `{prefix}lm`, `{prefix}modelload`, `{prefix}startmodel`\n"
                     "Run this before starting an incense session\n"
                     "⚠️ Increases memory usage significantly"
                 ),
@@ -610,7 +667,36 @@ class Help(commands.Cog):
                 name=f"`{prefix}unloadmodel`",
                 value=(
                     "Unload the AI prediction models from RAM\n"
+                    f"**Aliases:** `{prefix}um`, `{prefix}modelunload`, `{prefix}stopmodel`\n"
                     "Run this after finishing an incense session to free memory"
+                ),
+                inline=False
+            )
+
+            embed.add_field(
+                name=f"`{prefix}reloadmodel`",
+                value=(
+                    "Force re-download the latest models from GitHub and reload into RAM\n"
+                    f"**Aliases:** `{prefix}rm`, `{prefix}modelreload`, `{prefix}refreshmodel`\n"
+                    "Use this when model files have been updated on GitHub"
+                ),
+                inline=False
+            )
+
+            embed.add_field(
+                name=f"`{prefix}modelstatus`",
+                value=(
+                    "Show current model load state, RAM usage, and prediction stats\n"
+                    f"**Aliases:** `{prefix}ms`, `{prefix}modelinfo`, `{prefix}modelsinfo`"
+                ),
+                inline=False
+            )
+
+            embed.add_field(
+                name=f"`{prefix}reloadsr`",
+                value=(
+                    "Force-reload the spawn rate data from the remote CSV\n"
+                    "Useful after the spawn rate sheet has been updated"
                 ),
                 inline=False
             )
@@ -631,7 +717,7 @@ class Help(commands.Cog):
                     "Set global channel for secondary model logs\n"
                     f"**Aliases:** `{prefix}setsecondary`, `{prefix}secondarychannel`\n"
                     f"**Example:** `{prefix}set-secondary-model-channel #secondary-logs`\n"
-                    "Logs when secondary model (336x224) is used for predictions"
+                    "Logs when the secondary model is used for predictions"
                 ),
                 inline=False
             )
@@ -730,6 +816,15 @@ class Help(commands.Cog):
             )
 
             embed.add_field(
+                name="🔍 Helpful",
+                value=(
+                    f"`{prefix}sr <pokemon>` • `{prefix}shr [chain] [target%]`\n"
+                    "Hint solver (automatic — no command needed)"
+                ),
+                inline=False
+            )
+
+            embed.add_field(
                 name="🔍 Starboard Manual Check",
                 value=f"`{prefix}catchcheck` • `{prefix}eggcheck` • `{prefix}unboxcheck`",
                 inline=False
@@ -739,7 +834,8 @@ class Help(commands.Cog):
                 embed.add_field(
                     name="👑 Owner",
                     value=(
-                        f"`{prefix}loadmodel` • `{prefix}unloadmodel`\n"
+                        f"`{prefix}loadmodel` • `{prefix}unloadmodel` • `{prefix}reloadmodel`\n"
+                        f"`{prefix}modelstatus` • `{prefix}reloadsr`\n"
                         f"`{prefix}set-low-prediction-channel`\n"
                         f"`{prefix}set-secondary-model-channel`\n"
                         f"`{prefix}starboard-set-global-catch/egg/unbox`"
@@ -756,7 +852,7 @@ class Help(commands.Cog):
         else:
             await ctx.reply(
                 f"❌ Unknown category: `{category}`\n"
-                f"Available categories: `collection`, `category`, `hunt`, `pings`, `settings`, `prediction`, `starboard`, {'`owner`, ' if is_owner else ''}`all`\n"
+                f"Available categories: `collection`, `category`, `hunt`, `pings`, `settings`, `prediction`, `starboard`, `helpful`, {'`owner`, ' if is_owner else ''}`all`\n"
                 f"Use `{prefix}help` to see the main help menu.",
                 mention_author=False
             )
@@ -808,7 +904,7 @@ class Help(commands.Cog):
                 f"**Prefix:** {', '.join(BOT_PREFIX)}\n"
                 f"**Library:** discord.py\n"
                 f"**Database:** MongoDB\n"
-                f"**AI Models:** Dual CNN (224x224 + 336x224)"
+                f"**AI Models:** Dual CNN (224×224 primary + 224×224 secondary)"
             ),
             inline=True
         )
