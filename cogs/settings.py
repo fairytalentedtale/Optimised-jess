@@ -318,15 +318,15 @@ class Settings(commands.Cog):
     # ------------------------------------------------------------------
     # p!clear-server-pings  (bot owner / server owner / admin only)
     # ------------------------------------------------------------------
-    @commands.command(name="clear-server-pings", aliases=["csp", "clearserverpings", "resetpings"])
+    @commands.command(name="clear-pings", aliases=["clearpings", "clearserverpings", "resetpings"])
     async def clear_server_pings_command(self, ctx, target: str = None):
         """Clear all ping data (collections, shiny hunts, type pings, region pings)
         for a specific user OR every user in this server.
 
         Usage:
-            p!clear-server-pings             → clears ALL users in this server
-            p!clear-server-pings @user       → clears only that user (must be in server)
-            p!clear-server-pings <user_id>   → clears by raw ID (works even if user left)
+            p!clear-pings             → clears ALL users in this server
+            p!clear-pings @user       → clears only that user (must be in server)
+            p!clear-pings <user_id>   → clears by raw ID (works even if user left)
         """
         # ── Resolve target user ID ─────────────────────────────────────
         target_id   = None
