@@ -217,30 +217,27 @@ class StarboardCatch(commands.Cog):
     
     # Witty footer lines for milestone embeds
     MILESTONE_FOOTER_LINES = [
-        "unemployed final boss • needs a job",
-        "professionally avoiding responsibilities since day 1",
-        "catching pokémon instead of catching flights",
-        "this is a cry for help dressed as an achievement",
-        "peak productivity: touching grass is not included",
-        "a legend in the streets, a menace in the tall grass",
-        "therapy? no. pokéballs? yes.",
-        "social life: 0 — pokédex entries: many",
-        "sponsored by sleep deprivation and spite",
-        "do not ask how many hours this took. just clap.",
-        "the grind never stops. neither does the sadness.",
-        "mom said i could be anything, so i became a problem",
-        "certified internet creature of culture",
-        "living proof that dedication and delusion look the same",
-        "no life? no problem. i have pokémon.",
-        "built different. also possibly broken.",
-        "the real treasure was the caught pokémon along the way",
-        "this person needs sunlight immediately",
-        "somewhere out there, a wild pokémon is trembling",
-        "insert motivational quote here • we're all tired",
-    ]
+    "unemployed final boss",
+    "grinding pixels like rent depends on it",
+    "sleep schedule left the chat",
+    "breaking records and mental stability",
+    "built different • runs on zero sunlight",
+    "running purely on caffeine and bad choices",
+    "this is why the wifi bill is high",
+    "this is what happens when 'just one more' wins",
+    "this could’ve been avoided at multiple points",
+    "this is why parents check screen time",
+    "this is the long-term effect of 'why not'",
+    "unemployed but somehow still busy",
+    "bro made this their 9–5",
+    "this is why 'just one more' is dangerous",
+    "social life: 0 — pokédex entries: many",
+    "do not ask how many hours this took. just clap",
+    "this person needs sunlight immediately",
+]
 
     def create_milestone_embed(self, catch_data: dict, original_message: discord.Message = None) -> discord.Embed:
-        """Create embed for a milestone catch (1k / 10k / 100k) — distinct flashy style"""
+        """Create embed for a milestone catch (100 / 1k / 10k / 100k)"""
         import random
 
         pokemon_name = catch_data['pokemon_name']
@@ -267,49 +264,32 @@ class StarboardCatch(commands.Cog):
 
         image_url = find_pokemon_image_url(pokemon_name, is_shiny, gender, is_gigantamax)
 
-        # Tier-specific styling
         if count >= 100_000:
             medal = "🏆"
-            banner = "👑 LEGENDARY MILESTONE 👑"
-            color = 0xFFD700   # Gold
-            tier_label = "100,000 Caught — Absolutely Unhinged"
         elif count >= 10_000:
             medal = "🥇"
-            banner = "🌟 ELITE MILESTONE 🌟"
-            color = 0x00BFFF   # Deep sky blue
-            tier_label = "10,000 Caught — Seriously Impressive"
         elif count >= 1_000:
             medal = "🥈"
-            banner = "🎉 MILESTONE UNLOCKED 🎉"
-            color = 0x9B59B6   # Purple
-            tier_label = "1,000 Caught — The Journey Begins"
         else:
             medal = "🌱"
-            banner = "✅ FIRST STEPS ✅"
-            color = 0x2ECC71   # Green
-            tier_label = "100 Caught — Something Has Begun"
 
         formatted_count = f"{count:,}"
 
-        # Shiny bonus flair
-        shiny_line = "\n✨ **AND IT'S SHINY. ARE YOU KIDDING.**" if is_shiny else ""
-
         embed = discord.Embed(
-            title=f"{medal}  {banner}",
+            title=f"{medal} Milestone Catch Detected",
             description=(
-                f"## {formatted_count}th **{pokemon_display}** has been caught!\n"
-                f"━━━━━━━━━━━━━━━━━━━━━━\n"
-                f"**Trainer:** <@{user_id}>\n"
-                f"**Level:** {level}　　**IV:** {iv_display}\n"
-                f"**Tier:** {tier_label}"
-                f"{shiny_line}"
+                f"**Caught By:** <@{user_id}>\n"
+                f"**Pokémon:** {pokemon_display}\n"
+                f"**Level:** {level}\n"
+                f"**IV:** {iv_display}\n"
+                f"**Milestone:** {formatted_count}th caught"
             ),
-            color=color,
+            color=EMBED_COLOR,
             timestamp=datetime.utcnow()
         )
 
         if image_url:
-            embed.set_image(url=image_url)   # Full-width image instead of thumbnail
+            embed.set_thumbnail(url=image_url)
 
         embed.set_footer(text=random.choice(self.MILESTONE_FOOTER_LINES))
 
