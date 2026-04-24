@@ -37,6 +37,7 @@ class StarboardSettings(commands.Cog):
             await self.db.set_starboard_highiv_channel(ctx.guild.id, None)
             await self.db.set_starboard_lowiv_channel(ctx.guild.id, None)
             await self.db.set_starboard_missingno_channel(ctx.guild.id, None)
+            await self.db.set_starboard_milestone_channel(ctx.guild.id, None)
             
             await ctx.reply("✅ All starboard channels have been removed", mention_author=False)
             return
@@ -58,6 +59,7 @@ class StarboardSettings(commands.Cog):
         await self.db.set_starboard_highiv_channel(ctx.guild.id, text_channel.id)
         await self.db.set_starboard_lowiv_channel(ctx.guild.id, text_channel.id)
         await self.db.set_starboard_missingno_channel(ctx.guild.id, text_channel.id)
+        await self.db.set_starboard_milestone_channel(ctx.guild.id, text_channel.id)
         
         await ctx.reply(f"✅ All starboard channels set to {text_channel.mention}", mention_author=False)
     
@@ -261,6 +263,42 @@ class StarboardSettings(commands.Cog):
             await ctx.reply(f"✅ MissingNo starboard channel set to {text_channel.mention}", mention_author=False)
         except commands.BadArgument:
             await ctx.reply("❌ Invalid channel mention or ID.", mention_author=False)
+
+    @commands.command(name="starboard-milestone")
+    @commands.has_permissions(administrator=True)
+    async def starboard_milestone_command(self, ctx, channel: str = None):
+        """Set the milestone catch starboard channel for this server.
+
+        Logs catches when a user reaches exactly 1,000 / 10,000 / 100,000
+        of any single Pokémon species.
+
+        Example: p!starboard-milestone #milestones
+        To remove: p!starboard-milestone none
+        """
+        if not channel:
+            await ctx.reply(
+                "❌ Please mention a channel, provide a channel ID, or use 'none' to remove.\n"
+                "This channel logs 1,000 / 10,000 / 100,000 catches of a single Pokémon.",
+                mention_author=False
+            )
+            return
+
+        if channel.lower() == "none":
+            await self.db.set_starboard_milestone_channel(ctx.guild.id, None)
+            await ctx.reply("✅ Milestone starboard channel removed", mention_author=False)
+            return
+
+        try:
+            converter = commands.TextChannelConverter()
+            text_channel = await converter.convert(ctx, channel)
+            await self.db.set_starboard_milestone_channel(ctx.guild.id, text_channel.id)
+            await ctx.reply(
+                f"✅ Milestone starboard channel set to {text_channel.mention}\n"
+                f"Will log catches at **1,000 / 10,000 / 100,000** of any Pokémon.",
+                mention_author=False
+            )
+        except commands.BadArgument:
+            await ctx.reply("❌ Invalid channel mention or ID.", mention_author=False)
     
     # Global starboard channels (bot owner only)
     @commands.command(name="global-starboard-catch")
@@ -351,6 +389,13 @@ class StarboardSettings(commands.Cog):
             embed.add_field(name="MissingNo Channel", value=f"<#{missingno_channel_id}>", inline=True)
         else:
             embed.add_field(name="MissingNo Channel", value="Not set", inline=True)
+
+        # Milestone channel
+        milestone_channel_id = settings.get('starboard_milestone_channel_id')
+        if milestone_channel_id:
+            embed.add_field(name="Milestone Channel", value=f"<#{milestone_channel_id}>", inline=True)
+        else:
+            embed.add_field(name="Milestone Channel", value="Not set", inline=True)
         
         # Egg channel
         egg_channel_id = settings.get('starboard_egg_channel_id')
@@ -379,6 +424,7 @@ class StarboardSettings(commands.Cog):
     @starboard_highiv_command.error
     @starboard_lowiv_command.error
     @starboard_missingno_command.error
+    @starboard_milestone_command.error
     async def starboard_command_error(self, ctx, error):
         if isinstance(error, commands.MissingPermissions):
             await ctx.reply("❌ You need administrator permissions to use this command.", mention_author=False)
