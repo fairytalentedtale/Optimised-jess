@@ -71,6 +71,41 @@ class StarboardCatch(commands.Cog):
             'message_type': 'catch'
         }
     
+    # Milestone catch counts that qualify for the milestone starboard
+    MILESTONE_COUNTS = {1_000, 10_000, 100_000}
+
+    def parse_poketwo_milestone_message(self, message_content: str) -> dict:
+        """Parse Poketwo milestone catch message.
+
+        Matches lines like:
+          'This is your 1,000th Zygarde!'
+          'This is your 10000th Charizard!'
+        Returns None if the count is not one of the three milestones.
+        """
+        # Allow optional commas in the number (1,000 / 10,000 / 100,000)
+        milestone_pattern = r"This is your ([\d,]+)(?:st|nd|rd|th) (.+?)!"
+        match = re.search(milestone_pattern, message_content)
+        if not match:
+            return None
+
+        raw_count = match.group(1).replace(",", "")
+        try:
+            count = int(raw_count)
+        except ValueError:
+            return None
+
+        if count not in self.MILESTONE_COUNTS:
+            return None
+
+        # Re-use the standard catch parser to get user/pokemon/level/iv data
+        catch_data = self.parse_poketwo_catch_message(message_content)
+        if not catch_data:
+            return None
+
+        catch_data['message_type'] = 'milestone'
+        catch_data['milestone_count'] = count
+        return catch_data
+
     def parse_poketwo_missingno_message(self, message_content: str) -> dict:
         """Parse Poketwo MissingNo catch message"""
         missingno_pattern1 = r"Congratulations <@!?(\d+)>! You caught a Level \?\?\? MissingNo\.(?:<:[^:]+:\d+>)? \(\?\?\?%\)!"
@@ -180,6 +215,89 @@ class StarboardCatch(commands.Cog):
         
         return embed
     
+    def create_milestone_embed(self, catch_data: dict, original_message: discord.Message = None) -> discord.Embed:
+        """Create embed for a milestone catch (1k / 10k / 100k)"""
+        pokemon_name = catch_data['pokemon_name']
+        level = catch_data['level']
+        iv = catch_data['iv']
+        is_shiny = catch_data['is_shiny']
+        is_gigantamax = catch_data['is_gigantamax']
+        gender = catch_data.get('gender')
+        user_id = catch_data['user_id']
+        count = catch_data['milestone_count']
+
+        iv_display = format_iv_display(iv)
+        gender_emoji = get_gender_emoji(gender)
+
+        if is_gigantamax:
+            if pokemon_name.lower() == "eternatus":
+                display_pokemon_name = "Eternamax Eternatus"
+            else:
+                display_pokemon_name = f"Gigantamax {pokemon_name}"
+        else:
+            display_pokemon_name = pokemon_name
+
+        pokemon_display = f"{display_pokemon_name} {gender_emoji}".strip() if gender_emoji else display_pokemon_name
+
+        image_url = find_pokemon_image_url(pokemon_name, is_shiny, gender, is_gigantamax)
+
+        # Medal emoji per milestone tier
+        if count >= 100_000:
+            medal = "🏆"
+        elif count >= 10_000:
+            medal = "🥇"
+        else:
+            medal = "🥈"
+
+        formatted_count = f"{count:,}"
+
+        embed = discord.Embed(
+            title=f"{medal} Milestone Catch — {formatted_count}th {display_pokemon_name}!",
+            description=(
+                f"**Caught By:** <@{user_id}>\n"
+                f"**Pokémon:** {pokemon_display}\n"
+                f"**Level:** {level}\n"
+                f"**IV:** {iv_display}\n"
+                f"**Milestone:** {formatted_count} caught"
+            ),
+            color=EMBED_COLOR,
+            timestamp=datetime.utcnow()
+        )
+
+        if image_url:
+            embed.set_thumbnail(url=image_url)
+
+        return embed
+
+    async def send_to_milestone_starboard(self, guild: discord.Guild, catch_data: dict, original_message: discord.Message = None):
+        """Send a milestone catch to the milestone starboard channel"""
+        settings = await self.db.get_guild_settings(guild.id)
+        milestone_channel_id = settings.get('starboard_milestone_channel_id')
+
+        channels_to_send = []
+        if milestone_channel_id:
+            channels_to_send.append(milestone_channel_id)
+
+        global_milestone_channel_id = await self.db.get_global_starboard_milestone_channel()
+        embed = self.create_milestone_embed(catch_data, original_message)
+        view = create_jump_button_view(original_message)
+
+        for channel_id in channels_to_send:
+            channel = guild.get_channel(channel_id)
+            if channel:
+                try:
+                    await channel.send(embed=embed, view=view)
+                except Exception as e:
+                    print(f"Error sending to milestone starboard channel {channel_id}: {e}")
+
+        if global_milestone_channel_id:
+            global_channel = self.bot.get_channel(global_milestone_channel_id)
+            if global_channel:
+                try:
+                    await global_channel.send(embed=embed, view=view)
+                except Exception as e:
+                    print(f"Error sending to global milestone starboard channel: {e}")
+
     async def send_to_starboard_channels(self, guild: discord.Guild, catch_data: dict, original_message: discord.Message = None):
         """Send catch to appropriate starboard channels"""
         is_shiny = catch_data['is_shiny']
@@ -326,12 +444,23 @@ class StarboardCatch(commands.Cog):
         
         catch_data = self.parse_poketwo_missingno_message(catch_message)
         if not catch_data:
+            catch_data = self.parse_poketwo_milestone_message(catch_message)
+            if catch_data:
+                await self.send_to_milestone_starboard(ctx.guild, catch_data, original_message)
+                await ctx.reply(
+                    f"✅ Milestone catch sent to milestone starboard!\n"
+                    f"**Pokémon:** {catch_data['pokemon_name']} (Level {catch_data['level']}, {format_iv_display(catch_data['iv'])})\n"
+                    f"**Milestone:** {catch_data['milestone_count']:,}th caught",
+                    mention_author=False
+                )
+                return
+        if not catch_data:
             catch_data = self.parse_poketwo_catch_message(catch_message)
-        
+
         if not catch_data:
             await ctx.reply("❌ Invalid message format. Please make sure it's a proper Poketwo catch message.", mention_author=False)
             return
-        
+
         if not self.should_log_catch(catch_data):
             gender_emoji = get_gender_emoji(catch_data.get('gender'))
             pokemon_display = f"{catch_data['pokemon_name']} {gender_emoji}" if gender_emoji else catch_data['pokemon_name']
@@ -398,15 +527,22 @@ class StarboardCatch(commands.Cog):
             return
         
         catch_data = None
-        
+
         if "MissingNo." in message.content:
             catch_data = self.parse_poketwo_missingno_message(message.content)
         elif message.content.startswith("Congratulations"):
-            catch_data = self.parse_poketwo_catch_message(message.content)
-        
+            # Check for milestone first (the milestone phrase lives in the same message)
+            milestone_data = self.parse_poketwo_milestone_message(message.content)
+            if milestone_data:
+                await self.send_to_milestone_starboard(message.guild, milestone_data, message)
+                # Still fall through so a shiny/high-IV milestone also hits the normal starboard
+                catch_data = milestone_data
+            else:
+                catch_data = self.parse_poketwo_catch_message(message.content)
+
         if not catch_data:
             return
-        
+
         if self.should_log_catch(catch_data):
             await self.send_to_starboard_channels(message.guild, catch_data, message)
 
