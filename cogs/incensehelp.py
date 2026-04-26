@@ -1093,8 +1093,7 @@ class Incense(commands.Cog):
         embed.add_field(
             name="📋 Status",
             value=(
-                f"`{p}inc list paused` — Channels where Poketwo is restricted\n"
-                f"`{p}inc list resumed` — Channels where Poketwo is active"
+                f"`{p}inc list` — check paused and resumed incenses\n"
             ),
             inline=False
         )
