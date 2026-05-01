@@ -414,173 +414,6 @@
   },
   {
     "dex_number": 25,
-    "name": "Pikachu Rock Star",
-    "other_names": {
-      "🇬🇧": "Pikachu Rock Star",
-      "🇫🇷": "Pikachu Rockeur"
-    },
-    "is_variant": true,
-    "variant_of": "Pikachu",
-    "rarity": "event"
-  },
-  {
-    "dex_number": 25,
-    "name": "Pikachu Belle",
-    "other_names": {
-      "🇬🇧": "Pikachu Belle",
-      "🇫🇷": "Pikachu Lady"
-    },
-    "is_variant": true,
-    "variant_of": "Pikachu",
-    "rarity": "event"
-  },
-  {
-    "dex_number": 25,
-    "name": "Pikachu Pop Star",
-    "other_names": {
-      "🇬🇧": "Pikachu Pop Star",
-      "🇫🇷": "Pikachu Star"
-    },
-    "is_variant": true,
-    "variant_of": "Pikachu",
-    "rarity": "event"
-  },
-  {
-    "dex_number": 25,
-    "name": "Pikachu Ph.D.",
-    "other_names": {
-      "🇬🇧": "Pikachu Ph.D.",
-      "🇫🇷": "Pikachu Docteur"
-    },
-    "is_variant": true,
-    "variant_of": "Pikachu",
-    "rarity": "event"
-  },
-  {
-    "dex_number": 25,
-    "name": "Pikachu Libre",
-    "other_names": {
-      "🇬🇧": "Pikachu Libre",
-      "🇫🇷": "Pikachu Catcheur"
-    },
-    "is_variant": true,
-    "variant_of": "Pikachu",
-    "rarity": "event"
-  },
-  {
-    "dex_number": 25,
-    "name": "Original Cap Pikachu",
-    "other_names": {
-      "🇯🇵": [
-        "オリジナルキャップ",
-        "Orijinarukyappu"
-      ],
-      "🇬🇧": "Original Cap Pikachu",
-      "🇩🇪": "Original-Kappe",
-      "🇫🇷": "Casquette Originale"
-    },
-    "is_variant": true,
-    "variant_of": "Pikachu",
-    "rarity": "event"
-  },
-  {
-    "dex_number": 25,
-    "name": "Hoenn Cap Pikachu",
-    "other_names": {
-      "🇯🇵": [
-        "ホウエンキャップ",
-        "Hōenkyappu"
-      ],
-      "🇬🇧": "Hoenn Cap Pikachu",
-      "🇩🇪": "Hoenn-Kappe",
-      "🇫🇷": "Casquette de Hoenn"
-    },
-    "is_variant": true,
-    "variant_of": "Pikachu",
-    "rarity": "event"
-  },
-  {
-    "dex_number": 25,
-    "name": "Sinnoh Cap Pikachu",
-    "other_names": {
-      "🇯🇵": [
-        "シンオウキャップ",
-        "Shin'Ōkyappu"
-      ],
-      "🇬🇧": "Sinnoh Cap Pikachu",
-      "🇩🇪": "Sinnoh-Kappe",
-      "🇫🇷": "Casquette de Sinnoh"
-    },
-    "is_variant": true,
-    "variant_of": "Pikachu",
-    "rarity": "event"
-  },
-  {
-    "dex_number": 25,
-    "name": "Unova Cap Pikachu",
-    "other_names": {
-      "🇯🇵": [
-        "イッシュキャップ",
-        "Isshukyappu"
-      ],
-      "🇬🇧": "Unova Cap Pikachu",
-      "🇩🇪": "Einall-Kappe",
-      "🇫🇷": "Casquette d'Unys"
-    },
-    "is_variant": true,
-    "variant_of": "Pikachu",
-    "rarity": "event"
-  },
-  {
-    "dex_number": 25,
-    "name": "Kalos Cap Pikachu",
-    "other_names": {
-      "🇯🇵": [
-        "カロスキャップ",
-        "Karosukyappu"
-      ],
-      "🇬🇧": "Kalos Cap Pikachu",
-      "🇩🇪": "Kalos-Kappe",
-      "🇫🇷": "Casquette de Kalos"
-    },
-    "is_variant": true,
-    "variant_of": "Pikachu",
-    "rarity": "event"
-  },
-  {
-    "dex_number": 25,
-    "name": "Alola Cap Pikachu",
-    "other_names": {
-      "🇯🇵": [
-        "アローラキャップ",
-        "Arōrakyappu"
-      ],
-      "🇬🇧": "Alola Cap Pikachu",
-      "🇩🇪": "Alola-Kappe",
-      "🇫🇷": "Casquette d'Alola"
-    },
-    "is_variant": true,
-    "variant_of": "Pikachu",
-    "rarity": "event"
-  },
-  {
-    "dex_number": 25,
-    "name": "Partner Cap Pikachu",
-    "other_names": {
-      "🇯🇵": [
-        "キミにきめたキャップ",
-        "Kiminikimetakyappu"
-      ],
-      "🇬🇧": "Partner Cap Pikachu",
-      "🇩🇪": "Partner-Kappe",
-      "🇫🇷": "Casquette Partenaire"
-    },
-    "is_variant": true,
-    "variant_of": "Pikachu",
-    "rarity": "event"
-  },
-  {
-    "dex_number": 25,
     "name": "Partner Pikachu",
     "other_names": {
       "🇬🇧": "Partner Pikachu",
@@ -11514,22 +11347,6 @@
     "is_variant": false
   },
   {
-    "dex_number": 658,
-    "name": "Ash's Greninja",
-    "other_names": {
-      "🇯🇵": [
-        "サトシゲッコウガ",
-        "Satoshigekkōga"
-      ],
-      "🇬🇧": "Ash's Greninja",
-      "🇩🇪": "Ash-Form",
-      "🇫🇷": "Forme Sacha"
-    },
-    "is_variant": true,
-    "variant_of": "Greninja",
-    "rarity": "event"
-  },
-  {
     "dex_number": 659,
     "name": "Bunnelby",
     "other_names": {
@@ -12727,54 +12544,6 @@
     "is_variant": false
   },
   {
-    "dex_number": 710,
-    "name": "Small Pumpkaboo",
-    "other_names": {
-      "🇯🇵": [
-        "ちいさいサイズ",
-        "Chiisaisaizu"
-      ],
-      "🇬🇧": "Small Pumpkaboo",
-      "🇩🇪": "Größe S",
-      "🇫🇷": "Taille Mini"
-    },
-    "is_variant": true,
-    "variant_of": "Pumpkaboo",
-    "rarity": "event"
-  },
-  {
-    "dex_number": 710,
-    "name": "Large Pumpkaboo",
-    "other_names": {
-      "🇯🇵": [
-        "おおきいサイズ",
-        "Ōkiisaizu"
-      ],
-      "🇬🇧": "Large Pumpkaboo",
-      "🇩🇪": "Größe L",
-      "🇫🇷": "Taille Maxi"
-    },
-    "is_variant": true,
-    "variant_of": "Pumpkaboo",
-    "rarity": "event"
-  },
-  {
-    "dex_number": 710,
-    "name": "Super Pumpkaboo",
-    "other_names": {
-      "🇯🇵": [
-        "とくだいサイズ",
-        "Tokudaisaizu"
-      ],
-      "🇬🇧": "Super Pumpkaboo",
-      "🇩🇪": "Größe XL",
-      "🇫🇷": "Taille Ultra"
-    },
-    "is_variant": true,
-    "variant_of": "Pumpkaboo",
-    "rarity": "event"
-  },
-  {
     "dex_number": 711,
     "name": "Gourgeist",
     "other_names": {
@@ -12788,54 +12557,6 @@
       "🇫🇷": "Banshitrouye"
     },
     "is_variant": false
-  },
-  {
-    "dex_number": 711,
-    "name": "Small Gourgeist",
-    "other_names": {
-      "🇯🇵": [
-        "ちいさいサイズ",
-        "Chiisaisaizu"
-      ],
-      "🇬🇧": "Small Gourgeist",
-      "🇩🇪": "Größe S",
-      "🇫🇷": "Taille Mini"
-    },
-    "is_variant": true,
-    "variant_of": "Gourgeist",
-    "rarity": "event"
-  },
-  {
-    "dex_number": 711,
-    "name": "Large Gourgeist",
-    "other_names": {
-      "🇯🇵": [
-        "おおきいサイズ",
-        "Ōkiisaizu"
-      ],
-      "🇬🇧": "Large Gourgeist",
-      "🇩🇪": "Größe L",
-      "🇫🇷": "Taille Maxi"
-    },
-    "is_variant": true,
-    "variant_of": "Gourgeist",
-    "rarity": "event"
-  },
-  {
-    "dex_number": 711,
-    "name": "Super Gourgeist",
-    "other_names": {
-      "🇯🇵": [
-        "とくだいサイズ",
-        "Tokudaisaizu"
-      ],
-      "🇬🇧": "Super Gourgeist",
-      "🇩🇪": "Größe XL",
-      "🇫🇷": "Taille Ultra"
-    },
-    "is_variant": true,
-    "variant_of": "Gourgeist",
-    "rarity": "event"
   },
   {
     "dex_number": 712,
@@ -18060,24 +17781,6 @@
     "is_variant": true,
     "variant_of": "Terapagos",
     "rarity": "legendary"
-  },
-  {
-    "dex_number": 69,
-    "name": "Beta Bellsprout",
-    "other_names": {
-      "🇬🇧": "Event Bellsprout"
-    },
-    "is_variant": true,
-    "variant_of": "Bellsprout"
-  },
-  {
-    "dex_number": 153,
-    "name": "Beta Bayleef",
-    "other_names": {
-      "🇬🇧": "Event Bayleef"
-    },
-    "is_variant": true,
-    "variant_of": "Bayleef"
   },
   {
     "dex_number": 1025,
