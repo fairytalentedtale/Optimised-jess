@@ -1,0 +1,2611 @@
+[
+  {
+    "dex_number": 1,
+    "name": "Autumn Bulbasaur",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 13,
+    "name": "Bug Catcher Weedle",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 16,
+    "name": "Papel Picado Pidgey",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 25,
+    "name": "Alola Cap Pikachu",
+    "other_names": {
+      "🇯🇵": [
+        "アローラキャップ",
+        "Arōrakyappu"
+      ],
+      "🇩🇪": [
+        "Alola-Kappe"
+      ],
+      "🇫🇷": [
+        "Casquette d'Alola"
+      ]
+    },
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 25,
+    "name": "Hoenn Cap Pikachu",
+    "other_names": {
+      "🇯🇵": [
+        "ホウエンキャップ",
+        "Hōenkyappu"
+      ],
+      "🇩🇪": [
+        "Hoenn-Kappe"
+      ],
+      "🇫🇷": [
+        "Casquette de Hoenn"
+      ]
+    },
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 25,
+    "name": "Kalos Cap Pikachu",
+    "other_names": {
+      "🇯🇵": [
+        "カロスキャップ",
+        "Karosukyappu"
+      ],
+      "🇩🇪": [
+        "Kalos-Kappe"
+      ],
+      "🇫🇷": [
+        "Casquette de Kalos"
+      ]
+    },
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 25,
+    "name": "Original Cap Pikachu",
+    "other_names": {
+      "🇯🇵": [
+        "オリジナルキャップ",
+        "Orijinarukyappu"
+      ],
+      "🇩🇪": [
+        "Original-Kappe"
+      ],
+      "🇫🇷": [
+        "Casquette Originale"
+      ]
+    },
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 25,
+    "name": "Partner Cap Pikachu",
+    "other_names": {
+      "🇯🇵": [
+        "キミにきめたキャップ",
+        "Kiminikimetakyappu"
+      ],
+      "🇩🇪": [
+        "Partner-Kappe"
+      ],
+      "🇫🇷": [
+        "Casquette Partenaire"
+      ]
+    },
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 25,
+    "name": "Pikachu Belle",
+    "other_names": {
+      "🇫🇷": [
+        "Pikachu Lady"
+      ]
+    },
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 25,
+    "name": "Pikachu Libre",
+    "other_names": {
+      "🇫🇷": [
+        "Pikachu Catcheur"
+      ]
+    },
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 25,
+    "name": "Pikachu Ph.D.",
+    "other_names": {
+      "🇫🇷": [
+        "Pikachu Docteur"
+      ]
+    },
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 25,
+    "name": "Pikachu Pop Star",
+    "other_names": {
+      "🇫🇷": [
+        "Pikachu Star"
+      ]
+    },
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 25,
+    "name": "Pikachu Rock Star",
+    "other_names": {
+      "🇫🇷": [
+        "Pikachu Rockeur"
+      ]
+    },
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 25,
+    "name": "Sinnoh Cap Pikachu",
+    "other_names": {
+      "🇯🇵": [
+        "シンオウキャップ",
+        "Shin'Ōkyappu"
+      ],
+      "🇩🇪": [
+        "Sinnoh-Kappe"
+      ],
+      "🇫🇷": [
+        "Casquette de Sinnoh"
+      ]
+    },
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 25,
+    "name": "Snowman Pikachu",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 25,
+    "name": "Surf Pikachu",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 25,
+    "name": "United Pikachu",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 25,
+    "name": "Unova Cap Pikachu",
+    "other_names": {
+      "🇯🇵": [
+        "イッシュキャップ",
+        "Isshukyappu"
+      ],
+      "🇩🇪": [
+        "Einall-Kappe"
+      ],
+      "🇫🇷": [
+        "Casquette d'Unys"
+      ]
+    },
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 26,
+    "name": "Vampire Raichu",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 27,
+    "name": "Sandshrew of the Sarcophagus",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 29,
+    "name": "Valentine's Nidoran",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 37,
+    "name": "Birthday Cake Alopix",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 37,
+    "name": "Rudolph Vulpix",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 38,
+    "name": "Halloween Alolan Ninetales",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 39,
+    "name": "Devil Jigglypuff",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 43,
+    "name": "Sprouting Oddish",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 46,
+    "name": "Flower Paras",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 50,
+    "name": "Angel Diglett",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 52,
+    "name": "Egg Painter Meowth",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 54,
+    "name": "Frankenstein Psyduck",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 77,
+    "name": "Elsa Galarian Ponyta",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 78,
+    "name": "Autumn Rapidash",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 79,
+    "name": "Snowy Slowpoke",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 82,
+    "name": "Eggneton",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 83,
+    "name": "Festive Farfetch'd",
+    "other_names": {
+      "🇯🇵": [
+        "クリスマスカモネギ",
+        "Kurisumasukamonegi",
+        "Christmas Kamonegi"
+      ],
+      "🇩🇪": [
+        "Weihnachten Porenta"
+      ],
+      "🇫🇷": [
+        "Canarticho Festif"
+      ]
+    },
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 83,
+    "name": "Umbrella Farfetch'd",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 88,
+    "name": "Cube Slime Grimer",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 92,
+    "name": "Snowball Gastly",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 103,
+    "name": "Celebrating Alolan Exeggutor ft. Komala",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 104,
+    "name": "Festive Cubone",
+    "other_names": {
+      "🇯🇵": [
+        "クリスマスカラカラ",
+        "Kurisumasukarakara",
+        "Christmas Karakara"
+      ],
+      "🇩🇪": [
+        "Weihnachten Tragosso"
+      ],
+      "🇫🇷": [
+        "Osselait Festif"
+      ]
+    },
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 105,
+    "name": "Candy Cane Marowak",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 114,
+    "name": "Pasta Bolognese Tangela",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 115,
+    "name": "Egg Hunter Kangaskhan",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 124,
+    "name": "Mrs. Claus Jynx",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 131,
+    "name": "Anniversary Lapras",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 131,
+    "name": "Egg Nest Lapras",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 132,
+    "name": "Cracked Ditto",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 133,
+    "name": "Autumn Eevee",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 143,
+    "name": "Grilling Snorlax",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 143,
+    "name": "Santa Snorlax",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 147,
+    "name": "Martini Dratini",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 149,
+    "name": "Conductor Dragonite",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 149,
+    "name": "Guardian Dragonite",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 152,
+    "name": "Autumn Chikorita",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 154,
+    "name": "Shamrock Meganium",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 155,
+    "name": "Spikey Cyndaquil",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 158,
+    "name": "Sharkfin Totodile",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 161,
+    "name": "Archery Sentret",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 166,
+    "name": "Harvesting Ledian",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 172,
+    "name": "Ukulele Pichu",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 174,
+    "name": "Festive Igglybuff",
+    "other_names": {
+      "🇯🇵": [
+        "クリスマスププリン",
+        "Kurisumasupupurin",
+        "Christmas Pupurin"
+      ],
+      "🇩🇪": [
+        "Weihnachten Fluffeluff"
+      ],
+      "🇫🇷": [
+        "Toudoudou Festif"
+      ]
+    },
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 175,
+    "name": "Pumpkin Togepi",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 179,
+    "name": "Christmas Mareep",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 181,
+    "name": "Pride Ampharos",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 182,
+    "name": "Music Box Bellossom",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 182,
+    "name": "Pride Bellossom",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 185,
+    "name": "Festive Sudowoodo",
+    "other_names": {
+      "🇯🇵": [
+        "クリスマスウソッキー",
+        "Kurisumasūsokkī",
+        "Christmas Usokkie"
+      ],
+      "🇩🇪": [
+        "Weihnachten Mogelbaum"
+      ],
+      "🇫🇷": [
+        "Simularbre Festif"
+      ]
+    },
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 192,
+    "name": "Anniversary Sunflora",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 194,
+    "name": "Devil Wooper",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 194,
+    "name": "Skater Wooper",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 195,
+    "name": "Camp Leader Quagsire",
+    "other_names": {
+      "🇫🇷": [
+        "Maraiste"
+      ]
+    },
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 198,
+    "name": "Festive Murkrow",
+    "other_names": {
+      "🇯🇵": [
+        "クリスマスヤミカラス",
+        "Kurisumasuyamikarasu",
+        "Christmas Yamikarasu"
+      ],
+      "🇩🇪": [
+        "Weihnachten Kramurx"
+      ],
+      "🇫🇷": [
+        "Cornèbre Festif"
+      ]
+    },
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 201,
+    "name": "Pride Unown",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 216,
+    "name": "Sweater Teddiursa",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 225,
+    "name": "Santa Delibird",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 235,
+    "name": "Fishing Smeargle ft. Magikarp",
+    "other_names": {
+      "🇫🇷": [
+        "Queulorior"
+      ]
+    },
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 241,
+    "name": "Festive Miltank",
+    "other_names": {
+      "🇯🇵": [
+        "クリスマスミルタンク",
+        "Kurisumasumirutanku",
+        "Christmas Miltank"
+      ],
+      "🇩🇪": [
+        "Weihnachten Miltank"
+      ],
+      "🇫🇷": [
+        "Écrémeuh Festif"
+      ]
+    },
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 255,
+    "name": "Festive Torchic",
+    "other_names": {
+      "🇯🇵": [
+        "クリスマスアチャモ",
+        "Kurisumasuachamo",
+        "Christmas Achamo"
+      ],
+      "🇩🇪": [
+        "Weihnachten Flemmli"
+      ],
+      "🇫🇷": [
+        "Poussifeu Festif"
+      ]
+    },
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 256,
+    "name": "Chicombusken",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 258,
+    "name": "Moon Fairy Mudkip",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 262,
+    "name": "Evil Mightyena",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 263,
+    "name": "Pride Zigzagoon",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 267,
+    "name": "Hatching Beautifly",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 270,
+    "name": "Sombrero Lotad",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 274,
+    "name": "Bird Nest Nuzleaf",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 281,
+    "name": "Ice Princess Kirlia",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 282,
+    "name": "Festive Gardevoir",
+    "other_names": {
+      "🇯🇵": [
+        "クリスマスサーナイト",
+        "Kurisumasusānaito",
+        "Christmas Sirnight"
+      ],
+      "🇩🇪": [
+        "Weihnachten Guardevoir"
+      ],
+      "🇫🇷": [
+        "Gardevoir Festif"
+      ]
+    },
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 282,
+    "name": "Pride Gardevoir & Delphox",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 284,
+    "name": "Pride Masquerain",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 286,
+    "name": "Sage of Foliage",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 298,
+    "name": "Easter Egg Azurill",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 303,
+    "name": "Overgrown Mawile",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 311,
+    "name": "Pyjama Plusle & Minun",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 316,
+    "name": "Temaki Gulpin",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 317,
+    "name": "Pile of Leaves Swalot",
+    "other_names": {
+      "🇫🇷": [
+        "Avaltout"
+      ]
+    },
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 325,
+    "name": "Ornaments Spoink",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 327,
+    "name": "Voodoo Spinda",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 338,
+    "name": "Soluna",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 343,
+    "name": "Leafy Baltoy",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 350,
+    "name": "Pride Milotic",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 354,
+    "name": "Banshee Banette",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 355,
+    "name": "Sugar Duskull",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 361,
+    "name": "Christmas Tree Snorunt",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 361,
+    "name": "Tent Snorunt",
+    "other_names": {
+      "🇫🇷": [
+        "Stalgamin"
+      ]
+    },
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 363,
+    "name": "Ice Cream Spheals",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 366,
+    "name": "Clamacaron",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 387,
+    "name": "Autumn Turtwig",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 387,
+    "name": "Treasure Turtwig",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 388,
+    "name": "Autumn Grotle",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 389,
+    "name": "Autumn Torterra",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 393,
+    "name": "Floatie Piplup",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 393,
+    "name": "Pride Piplup",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 399,
+    "name": "Easter Bidoof",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 402,
+    "name": "Wizard Kricketune",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 407,
+    "name": "Pride Roserade",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 413,
+    "name": "Snowmadam",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 417,
+    "name": "Lights Pachirisu",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 419,
+    "name": "Ranger Floatzel",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 421,
+    "name": "Blossom Cherrim",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 426,
+    "name": "Drifboy",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 427,
+    "name": "Egg Basket Buneary",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 428,
+    "name": "Doll Lopunny",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 436,
+    "name": "Snowflake Bronzor",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 454,
+    "name": "Rogue Toxicroak",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 455,
+    "name": "Overgrown Carnivine",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 461,
+    "name": "Sage of Shadows",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 470,
+    "name": "Autumn Leafeon",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 471,
+    "name": "Snowglobe Glaceon",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 474,
+    "name": "Porygon-X",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 475,
+    "name": "Festive Gallade",
+    "other_names": {
+      "🇯🇵": [
+        "クリスマスエルレイド",
+        "Kurisumasuerureido",
+        "Christmas Erureido"
+      ],
+      "🇩🇪": [
+        "Weihnachten Galagladi"
+      ],
+      "🇫🇷": [
+        "Gallame Festif"
+      ]
+    },
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 495,
+    "name": "Autumn Snivy",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 497,
+    "name": "Wooden Serperior",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 509,
+    "name": "Bard Purrloin",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 511,
+    "name": "Autumn Pansage",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 519,
+    "name": "Festive Pidove",
+    "other_names": {
+      "🇯🇵": [
+        "クリスマスマメパト",
+        "Kurisumasumamepato",
+        "Christmas Mamepato"
+      ],
+      "🇩🇪": [
+        "Weihnachten Dusselgurr"
+      ],
+      "🇫🇷": [
+        "Poichigeon Festif"
+      ]
+    },
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 521,
+    "name": "Lovebird Unfezant",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 524,
+    "name": "Sage of Snaring",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 528,
+    "name": "Cloubat",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 531,
+    "name": "Elf Audino",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 532,
+    "name": "Timber Timburr",
+    "other_names": {
+      "🇫🇷": [
+        "Charpenti"
+      ]
+    },
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 542,
+    "name": "Leavanette",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 546,
+    "name": "Cherry Blossom Cottonee",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 549,
+    "name": "La Catrina Hisuian Lilligant",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 549,
+    "name": "Poinsettia Lilligant",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 562,
+    "name": "Honoring Yamask",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 570,
+    "name": "Santa H. Zorua",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 571,
+    "name": "Foroark",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 572,
+    "name": "Pyjama Minccino",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 575,
+    "name": "Pumpkin Gothorita",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 576,
+    "name": "Monarch Gothitelle",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 580,
+    "name": "Baby Ducklett",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 580,
+    "name": "Waterpolo Ducklett",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 581,
+    "name": "Festive Swanna",
+    "other_names": {
+      "🇯🇵": [
+        "クリスマススワンナ",
+        "Kurisumasusuwanna",
+        "Christmas Swanna"
+      ],
+      "🇩🇪": [
+        "Weihnachten Swaroness"
+      ],
+      "🇫🇷": [
+        "Lakmécygne Festif"
+      ]
+    },
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 581,
+    "name": "Flower Family Swanna",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 585,
+    "name": "Reindeer Deerling",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 586,
+    "name": "Winter Event Sawsbuck",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 590,
+    "name": "Foombrella",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 608,
+    "name": "Paper Lantern Lampent",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 609,
+    "name": "Jack-O-Lantern Chandelure",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 613,
+    "name": "Spring Fever Cubchoo",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 623,
+    "name": "Hero Golurk",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 623,
+    "name": "Ruined Golurk",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 626,
+    "name": "Minotaur Bouffalant",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 627,
+    "name": "Pride Rufflet",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 636,
+    "name": "Crystal Larvesta",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 650,
+    "name": "Cooking Chespin",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 654,
+    "name": "Sage of Flames",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 656,
+    "name": "Toadsie",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 658,
+    "name": "Ash's Greninja",
+    "other_names": {
+      "🇯🇵": [
+        "サトシゲッコウガ",
+        "Satoshigekkōga"
+      ],
+      "🇩🇪": [
+        "Ash-Form"
+      ],
+      "🇫🇷": [
+        "Forme Sacha"
+      ]
+    },
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 659,
+    "name": "Nibbling Bunnelby",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 660,
+    "name": "Bonnersby",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 667,
+    "name": "Lion Dancer Litleo",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 668,
+    "name": "Alebrije Pyroar",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 669,
+    "name": "Flower Fairy Flabébé",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 670,
+    "name": "Eternal Flower Floette",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 672,
+    "name": "Autumn Skiddo",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 674,
+    "name": "Pacifier Pancham",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 678,
+    "name": "Snoozing Meowstic",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 679,
+    "name": "Cursed Blade Honedge",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 680,
+    "name": "Fancy Cutlery Doublade",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 698,
+    "name": "Snowy Amaura",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 700,
+    "name": "Pride Sylveon",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 700,
+    "name": "Sylvirus",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 703,
+    "name": "Halloween Carbink",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 704,
+    "name": "Goomy Brûlée",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 704,
+    "name": "Muddy Goomy",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 707,
+    "name": "Baby Toy Klefki",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 710,
+    "name": "Large Pumpkaboo",
+    "other_names": {
+      "🇯🇵": [
+        "おおきいサイズ",
+        "Ōkiisaizu"
+      ],
+      "🇩🇪": [
+        "Größe L"
+      ],
+      "🇫🇷": [
+        "Taille Maxi"
+      ]
+    },
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 710,
+    "name": "Pumpkaboo Spice Latte",
+    "other_names": {
+      "🇫🇷": [
+        "Pitrouille"
+      ]
+    },
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 710,
+    "name": "Small Pumpkaboo",
+    "other_names": {
+      "🇯🇵": [
+        "ちいさいサイズ",
+        "Chiisaisaizu"
+      ],
+      "🇩🇪": [
+        "Größe S"
+      ],
+      "🇫🇷": [
+        "Taille Mini"
+      ]
+    },
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 710,
+    "name": "Super Pumpkaboo",
+    "other_names": {
+      "🇯🇵": [
+        "とくだいサイズ",
+        "Tokudaisaizu"
+      ],
+      "🇩🇪": [
+        "Größe XL"
+      ],
+      "🇫🇷": [
+        "Taille Ultra"
+      ]
+    },
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 711,
+    "name": "Large Gourgeist",
+    "other_names": {
+      "🇯🇵": [
+        "おおきいサイズ",
+        "Ōkiisaizu"
+      ],
+      "🇩🇪": [
+        "Größe L"
+      ],
+      "🇫🇷": [
+        "Taille Maxi"
+      ]
+    },
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 711,
+    "name": "Small Gourgeist",
+    "other_names": {
+      "🇯🇵": [
+        "ちいさいサイズ",
+        "Chiisaisaizu"
+      ],
+      "🇩🇪": [
+        "Größe S"
+      ],
+      "🇫🇷": [
+        "Taille Mini"
+      ]
+    },
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 711,
+    "name": "Super Gourgeist",
+    "other_names": {
+      "🇯🇵": [
+        "とくだいサイズ",
+        "Tokudaisaizu"
+      ],
+      "🇩🇪": [
+        "Größe XL"
+      ],
+      "🇫🇷": [
+        "Taille Ultra"
+      ]
+    },
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 722,
+    "name": "Christmas Rowlet",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 724,
+    "name": "Cupid Decidueye",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 733,
+    "name": "Pride Toucannon",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 737,
+    "name": "Camper Charjabug",
+    "other_names": {
+      "🇫🇷": [
+        "Chrysapile"
+      ]
+    },
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 741,
+    "name": "Cheerleader Oricorio",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 742,
+    "name": "Candy Corn Cutiefly",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 755,
+    "name": "Halloween Morelull",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 756,
+    "name": "Overgrown Shiinotic",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 757,
+    "name": "Fire Fairy Salandit",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 759,
+    "name": "Polar Stufful",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 760,
+    "name": "Fazwear",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 762,
+    "name": "Egg Searching Steenee",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 764,
+    "name": "Pride Comfey",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 764,
+    "name": "Wreath Comfey",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 771,
+    "name": "Lights Pyukumuku",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 774,
+    "name": "Rainbow Minior",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 775,
+    "name": "Presents Komala",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 777,
+    "name": "Easter Togedemaru",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 778,
+    "name": "Busted Mimikyu",
+    "other_names": {
+      "🇩🇪": [
+        "Entlarvte Form"
+      ],
+      "🇫🇷": [
+        "Forme Démasquée"
+      ]
+    },
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 779,
+    "name": "Pride Queen Bruxish",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 814,
+    "name": "Relay Race Raboot",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 818,
+    "name": "Fencinteleon",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 819,
+    "name": "Painted Acorn Skwovet",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 830,
+    "name": "Ornament Eldegoss",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 831,
+    "name": "Anniversary Wooloo",
+    "other_names": {
+      "🇯🇵": [
+        "記念日ウールー",
+        "Kinenbiūrū",
+        "Kinenbi Wooloo"
+      ],
+      "🇩🇪": [
+        "Jahrestag Wooloo"
+      ],
+      "🇫🇷": [
+        "Anniversaire Moumouton"
+      ]
+    },
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 837,
+    "name": "Coal Rolycoly",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 840,
+    "name": "Strawberry Shortcake Applin",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 841,
+    "name": "Pear Flapple",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 842,
+    "name": "Cake Appletun",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 848,
+    "name": "Boxel",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 854,
+    "name": "Choco Sinistea",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 854,
+    "name": "Good Luck Sinistea",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 855,
+    "name": "Kettle Polteageist",
+    "other_names": {
+      "🇫🇷": [
+        "Polthégeist"
+      ]
+    },
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 859,
+    "name": "Elf Impidimp",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 861,
+    "name": "Grinchsnarl",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 863,
+    "name": "Cosy Perrserker",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 865,
+    "name": "Nutcrack Sirfetch'd",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 868,
+    "name": "Choco Milcery",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 869,
+    "name": "Cupcake Alcremie",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 870,
+    "name": "Dango Falinks",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 875,
+    "name": "Ice Present Eiscue",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 901,
+    "name": "Barbarian Bloodmoon Ursaluna",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 903,
+    "name": "Snow Leopard Sneasler",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 910,
+    "name": "Proud Crocalor",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 915,
+    "name": "Egg Forager Lechonk",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 924,
+    "name": "Pride Tandemaus",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 925,
+    "name": "Marshmallow Maushold",
+    "other_names": {
+      "🇫🇷": [
+        "Famignol"
+      ]
+    },
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 926,
+    "name": "Hearts Fidough",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 927,
+    "name": "Autumn Dachsbun",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 928,
+    "name": "Christmas Tree Smoliv",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 929,
+    "name": "Christmas Tree Dolliv",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 930,
+    "name": "Christmas Tree Arboliva",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 932,
+    "name": "Mushroom Nacli",
+    "other_names": {
+      "🇫🇷": [
+        "Selutin"
+      ]
+    },
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 939,
+    "name": "Onigiri Bellibolt",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 945,
+    "name": "Raincoat Grafaiai",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 959,
+    "name": "Pride Tinkaton",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 960,
+    "name": "Candy Cane Wiglett",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 962,
+    "name": "Love Bombirdier",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 965,
+    "name": "Train Varoom",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 999,
+    "name": "Gingerbread Gimmighoul",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 146,
+    "name": "Olympic Flame Moltres",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Legendary, Event"
+  },
+  {
+    "dex_number": 150,
+    "name": "Shadow Mewtwo",
+    "other_names": {
+      "🇯🇵": [
+        "ダークミュウツー",
+        "Dākumyūtsū",
+        "Dark Mewtwo"
+      ],
+      "🇩🇪": [
+        "Crypto-Mewtwo"
+      ],
+      "🇫🇷": [
+        "Mewtwo Obscur"
+      ]
+    },
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Legendary, Event"
+  },
+  {
+    "dex_number": 151,
+    "name": "Lights Mew",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Mythical, Event"
+  },
+  {
+    "dex_number": 151,
+    "name": "Pride Mew",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Mythical, Event"
+  },
+  {
+    "dex_number": 249,
+    "name": "Shadow Lugia",
+    "other_names": {
+      "🇯🇵": [
+        "ダークルギア",
+        "Dākurugia",
+        "Dark Lugia"
+      ],
+      "🇩🇪": [
+        "Crypto-Lugia"
+      ],
+      "🇫🇷": [
+        "Lugia Obscur"
+      ]
+    },
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Legendary, Event"
+  },
+  {
+    "dex_number": 491,
+    "name": "Error Darkrai",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Mythical, Event"
+  },
+  {
+    "dex_number": 492,
+    "name": "Bouquet Shaymin",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Mythical, Event"
+  },
+  {
+    "dex_number": 493,
+    "name": "Glitched Beta Arceus",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Mythical, Event"
+  },
+  {
+    "dex_number": 493,
+    "name": "Pride Arceus",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Mythical, Event"
+  },
+  {
+    "dex_number": 716,
+    "name": "Shadow Xerneas",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Legendary, Event"
+  },
+  {
+    "dex_number": 717,
+    "name": "Ice Yveltal",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Legendary, Event"
+  },
+  {
+    "dex_number": 719,
+    "name": "Spring Blooming Diancie",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Mythical, Event"
+  },
+  {
+    "dex_number": 720,
+    "name": "Festive Hoopa",
+    "other_names": {
+      "🇯🇵": [
+        "クリスマスフーパ",
+        "Kurisumasufūpa",
+        "Christmas Hoopa"
+      ],
+      "🇩🇪": [
+        "Weihnachten Hoopa"
+      ],
+      "🇫🇷": [
+        "Hoopa Festif"
+      ]
+    },
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Mythical, Event"
+  },
+  {
+    "dex_number": 789,
+    "name": "Fireworks Cosmog",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Legendary, Event"
+  },
+  {
+    "dex_number": 795,
+    "name": "Flower Pheromosa",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Ultra Beast, Event"
+  },
+  {
+    "dex_number": 806,
+    "name": "Corrupted Blacephalon",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Ultra Beast, Event"
+  },
+  {
+    "dex_number": 806,
+    "name": "Ghost King Blacephalon",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Ultra Beast, Event"
+  },
+  {
+    "dex_number": 893,
+    "name": "Druid Zarude",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Mythical, Event"
+  },
+  {
+    "dex_number": 896,
+    "name": "Primal Glastrier",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Legendary, Event"
+  },
+  {
+    "dex_number": 1004,
+    "name": "Gradient Chi-Yu",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Legendary, Event"
+  },
+  {
+    "dex_number": 69,
+    "name": "Beta Bellsprout",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 153,
+    "name": "Beta Bayleef",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  }
+]
