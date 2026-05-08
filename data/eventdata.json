@@ -2613,7 +2613,7 @@
     "name": "Swarming Ledyba",
     "other_names": {},
     "is_variant": true,
-    "variant_of": null,
+    "variant_of": "Ledyba",
     "rarity": "Event"
   },
   {
@@ -2621,7 +2621,7 @@
     "name": "Cicada Vikavolt",
     "other_names": {},
     "is_variant": true,
-    "variant_of": null,
+    "variant_of": "Vikavolt",
     "rarity": "Event"
   }
 ]
