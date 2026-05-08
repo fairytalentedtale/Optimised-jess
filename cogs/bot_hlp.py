@@ -988,4 +988,4 @@ class BotHelp(commands.Cog):
         await ctx.invoke(self.help_command, category="all")
 
 async def setup(bot):
-    await bot.add_cog(Help(bot))
+    await bot.add_cog(BotHelp(bot))
