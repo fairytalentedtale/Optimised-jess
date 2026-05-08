@@ -2601,10 +2601,26 @@
     "rarity": "Event"
   },
   {
-    "dex_number": 153,
-    "name": "Beta Bayleef",
+    "dex_number": 69,
+    "name": "Beta Bellsprout",
     "other_names": {},
     "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 165,
+    "name": "Swarming Ledyba",
+    "other_names": {},
+    "is_variant": true,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 738,
+    "name": "Cicada Vikavolt",
+    "other_names": {},
+    "is_variant": true,
     "variant_of": null,
     "rarity": "Event"
   }
