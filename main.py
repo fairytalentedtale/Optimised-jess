@@ -132,7 +132,7 @@ async def on_ready():
         'cogs.type_region',
         'cogs.shiny_hunt',
         'cogs.settings',
-        'cogs.incensehelp',
+        'cogs.incense',
         'cogs.spawnrate',
         'cogs.hint_solver',
         'cogs.prediction',
