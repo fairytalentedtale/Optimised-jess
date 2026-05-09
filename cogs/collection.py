@@ -2,6 +2,7 @@
 import discord
 import math
 import asyncio
+from discord import app_commands
 from discord.ext import commands
 from typing import List
 from utils import (
@@ -327,6 +328,39 @@ class Collection(commands.Cog):
                 color=EMBED_COLOR
             )
             await ctx.reply(embed=embed, mention_author=False)
+
+    # ------------------------------------------------------------------
+    # Slash Commands  (registered automatically with the cog)
+    # ------------------------------------------------------------------
+    cl_group = app_commands.Group(name="cl", description="Manage your Pokémon collection for this server")
+
+    @cl_group.command(name="add", description="Add Pokémon to your collection")
+    @app_commands.describe(pokemon_names="Pokémon name(s), comma-separated. Append 'all' for all forms e.g. 'Furfrou all'")
+    async def slash_collection_add(self, interaction: discord.Interaction, pokemon_names: str):
+        ctx = await commands.Context.from_interaction(interaction)
+        await self.collection_add(ctx, pokemon_names=pokemon_names)
+
+    @cl_group.command(name="remove", description="Remove Pokémon from your collection")
+    @app_commands.describe(pokemon_names="Pokémon name(s), comma-separated")
+    async def slash_collection_remove(self, interaction: discord.Interaction, pokemon_names: str):
+        ctx = await commands.Context.from_interaction(interaction)
+        await self.collection_remove(ctx, pokemon_names=pokemon_names)
+
+    @cl_group.command(name="list", description="View your collection in a paginated embed")
+    async def slash_collection_list(self, interaction: discord.Interaction):
+        ctx = await commands.Context.from_interaction(interaction)
+        await self.collection_list(ctx)
+
+    @cl_group.command(name="raw", description="View your collection as raw comma-separated text")
+    async def slash_collection_raw(self, interaction: discord.Interaction):
+        ctx = await commands.Context.from_interaction(interaction)
+        await self.collection_raw(ctx)
+
+    @cl_group.command(name="clear", description="Clear your entire Pokémon collection")
+    async def slash_collection_clear(self, interaction: discord.Interaction):
+        ctx = await commands.Context.from_interaction(interaction)
+        await self.collection_clear(ctx)
+
 
 async def setup(bot):
     await bot.add_cog(Collection(bot))
