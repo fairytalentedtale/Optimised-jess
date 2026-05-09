@@ -3,6 +3,7 @@ import discord
 import re
 from datetime import datetime
 from discord.ext import commands
+from discord import app_commands
 from config import POKETWO_USER_ID, EMBED_COLOR, HIGH_IV_THRESHOLD, LOW_IV_THRESHOLD, Emojis
 from starboard_utils import (
     get_gender_emoji,
@@ -275,6 +276,84 @@ class StarboardUnbox(commands.Cog):
                     except Exception as e:
                         print(f"Error sending to global starboard channel: {e}")
     
+    async def box_check_context_callback(self, interaction: discord.Interaction, message: discord.Message):
+        """Context menu command to check a box opening message and DM results to the user"""
+        if message.author.id != POKETWO_USER_ID or not message.embeds:
+            await interaction.response.send_message(
+                "❌ Please use this on a Pokétwo box opening message!",
+                ephemeral=True
+            )
+            return
+
+        embed = message.embeds[0]
+        title = embed.title or ""
+        opening_keywords = ['open', 'opening', 'box', 'chest', 'mystery', 'egg', 'eggs', 'bundle', 'puddle', 'rain', 'storm']
+        if not any(kw.lower() in title.lower() for kw in opening_keywords):
+            await interaction.response.send_message(
+                "❌ This doesn't look like a box opening message.",
+                ephemeral=True
+            )
+            return
+
+        await interaction.response.defer(ephemeral=True)
+
+        unboxed_by_id = await self.get_unboxed_by_user(message)
+        pokemon_list = self.parse_poketwo_unbox_message(message, unboxed_by_id)
+
+        if not pokemon_list:
+            await interaction.followup.send("❌ Couldn't parse any Pokémon from that message.")
+            return
+
+        qualifying_pokemon = [
+            p for p in pokemon_list
+            if p['is_shiny'] or p['is_gigantamax'] or p['iv'] >= HIGH_IV_THRESHOLD or p['iv'] <= LOW_IV_THRESHOLD
+        ]
+
+        # --- Build DM content ---
+        if not qualifying_pokemon:
+            pokemon_summary = []
+            for p in pokemon_list:
+                ge = get_gender_emoji(p.get('gender'))
+                display = f"{p['pokemon_name']} {ge}".strip()
+                pokemon_summary.append(f"**{display}** (Lvl {p['level']}, {p['iv']}%)")
+
+            dm_lines = [
+                f"📦 **Box Check** — no starboard-worthy Pokémon found.\n",
+                "**All Pokémon in box:**",
+                *pokemon_summary,
+                f"\n_Criteria: Shiny, Gigantamax, IV ≥{HIGH_IV_THRESHOLD}% or ≤{LOW_IV_THRESHOLD}%_"
+            ]
+            dm_content = "\n".join(dm_lines)
+
+            try:
+                await interaction.user.send(dm_content)
+                await interaction.followup.send("📬 Results sent to your DMs!")
+            except discord.Forbidden:
+                await interaction.followup.send(
+                    "❌ Couldn't DM you. Please enable DMs from server members and try again."
+                )
+            return
+
+        # Send each qualifying Pokémon as an embed to DMs
+        view = create_jump_button_view(message)
+        try:
+            dm_channel = await interaction.user.create_dm()
+            await dm_channel.send(
+                f"📦 **Box Check** — {len(qualifying_pokemon)} noteworthy Pokémon found!\n"
+                f"[Jump to original message]({message.jump_url})"
+            )
+            for pokemon_data in qualifying_pokemon:
+                embed_to_send = self.create_unbox_embed(pokemon_data, message)
+                await dm_channel.send(embed=embed_to_send, view=view)
+
+            await interaction.followup.send(
+                f"📬 Results ({len(qualifying_pokemon)} Pokémon) sent to your DMs!"
+            )
+        except discord.Forbidden:
+            await interaction.followup.send(
+                "❌ Couldn't DM you. Please enable DMs from server members and try again."
+            )
+
     @commands.command(name="unboxcheck", aliases=["uc", "checkunbox"])
     @commands.has_permissions(administrator=True)
     async def unbox_check_command(self, ctx, *, input_data: str = None):
@@ -447,4 +526,12 @@ class StarboardUnbox(commands.Cog):
             await self.send_to_starboard_channels(message.guild, qualifying_pokemon, message)
 
 async def setup(bot):
-    await bot.add_cog(StarboardUnbox(bot))
+    cog = StarboardUnbox(bot)
+
+    box_check_context_menu = app_commands.ContextMenu(
+        name="Box Check",
+        callback=cog.box_check_context_callback
+    )
+    bot.tree.add_command(box_check_context_menu)
+
+    await bot.add_cog(cog)
