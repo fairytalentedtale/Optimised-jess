@@ -1,5 +1,6 @@
 """Help commands"""
 import discord
+from discord import app_commands
 from discord.ext import commands
 from config import EMBED_COLOR, BOT_PREFIX
 
@@ -1061,6 +1062,26 @@ class Help(commands.Cog):
     async def commands_command(self, ctx):
         """Quick alias to show all commands"""
         await ctx.invoke(self.help_command, category="all")
+
+    # ------------------------------------------------------------------
+    # Slash Commands  (registered automatically with the cog)
+    # ------------------------------------------------------------------
+    @app_commands.command(name="help", description="Show help information for the bot")
+    @app_commands.describe(category="Category: collection, category, hunt, pings, settings, prediction, starboard, helpful, incense, all")
+    async def slash_help(self, interaction: discord.Interaction, category: str = None):
+        ctx = await commands.Context.from_interaction(interaction)
+        await self.help_command(ctx, category=category)
+
+    @app_commands.command(name="about", description="Show bot information and statistics")
+    async def slash_about(self, interaction: discord.Interaction):
+        ctx = await commands.Context.from_interaction(interaction)
+        await self.about_command(ctx)
+
+    @app_commands.command(name="ping", description="Check bot latency")
+    async def slash_ping(self, interaction: discord.Interaction):
+        ctx = await commands.Context.from_interaction(interaction)
+        await self.ping_command(ctx)
+
 
 async def setup(bot):
     await bot.add_cog(Help(bot))
