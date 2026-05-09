@@ -1,6 +1,7 @@
 """Category management for bulk collection operations"""
 import discord
 import math
+from discord import app_commands
 from discord.ext import commands
 from typing import List
 from utils import (
@@ -386,6 +387,55 @@ class Category(commands.Cog):
             await ctx.reply("❌ You need administrator permissions to use this command.", mention_author=False)
         elif isinstance(error, commands.MissingRequiredArgument):
             await ctx.reply(f"❌ Missing required argument: `{error.param.name}`", mention_author=False)
+
+    # ------------------------------------------------------------------
+    # Slash Commands  (registered automatically with the cog)
+    # ------------------------------------------------------------------
+    cat_group = app_commands.Group(name="cat", description="Category management for bulk collection operations")
+
+    @cat_group.command(name="add", description="Add Pokémon from categories to your collection")
+    @app_commands.describe(category_names="Category name(s), comma-separated")
+    async def slash_category_add(self, interaction: discord.Interaction, category_names: str):
+        ctx = await commands.Context.from_interaction(interaction)
+        await self.category_add(ctx, category_names=category_names)
+
+    @cat_group.command(name="remove", description="Remove Pokémon from categories from your collection")
+    @app_commands.describe(category_names="Category name(s), comma-separated")
+    async def slash_category_remove(self, interaction: discord.Interaction, category_names: str):
+        ctx = await commands.Context.from_interaction(interaction)
+        await self.category_remove(ctx, category_names=category_names)
+
+    @cat_group.command(name="list", description="List all categories in this server")
+    async def slash_category_list(self, interaction: discord.Interaction):
+        ctx = await commands.Context.from_interaction(interaction)
+        await self.category_list(ctx)
+
+    @cat_group.command(name="info", description="View details of a specific category")
+    @app_commands.describe(name="Category name")
+    async def slash_category_info(self, interaction: discord.Interaction, name: str):
+        ctx = await commands.Context.from_interaction(interaction)
+        await self.category_info(ctx, name=name)
+
+    @cat_group.command(name="create", description="Create a new category (Admin only)")
+    @app_commands.describe(name="Category name", pokemon_input="Pokémon names, comma-separated. Supports 'arceus all'")
+    @app_commands.default_permissions(administrator=True)
+    async def slash_category_create(self, interaction: discord.Interaction, name: str, pokemon_input: str):
+        ctx = await commands.Context.from_interaction(interaction)
+        await self.category_create(ctx, name, pokemon_input=pokemon_input)
+
+    @cat_group.command(name="edit", description="Replace all Pokémon in a category (Admin only)")
+    @app_commands.describe(name="Category name", pokemon_input="New Pokémon list, comma-separated")
+    @app_commands.default_permissions(administrator=True)
+    async def slash_category_edit(self, interaction: discord.Interaction, name: str, pokemon_input: str):
+        ctx = await commands.Context.from_interaction(interaction)
+        await self.category_edit(ctx, name, pokemon_input=pokemon_input)
+
+    @cat_group.command(name="delete", description="Delete a category (Admin only)")
+    @app_commands.describe(name="Category name to delete")
+    @app_commands.default_permissions(administrator=True)
+    async def slash_category_delete(self, interaction: discord.Interaction, name: str):
+        ctx = await commands.Context.from_interaction(interaction)
+        await self.category_delete(ctx, name=name)
 
 
 async def setup(bot):
