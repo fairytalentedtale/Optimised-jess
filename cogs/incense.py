@@ -246,7 +246,19 @@ class IncenseListView(discord.ui.View):
         self.author_id = author_id
         self.showing_paused = True
         self.current = 0
+        self._inject_summary()
         self._update_buttons()
+
+    def _inject_summary(self):
+        """Add the ⏸️ total / ▶️ total summary line to the first embed of each set."""
+        summary = (
+            f"⏸️ **{self.paused_total}** paused channel{'s' if self.paused_total != 1 else ''}  ·  "
+            f"▶️ **{self.active_total}** active channel{'s' if self.active_total != 1 else ''}"
+        )
+        for page_list in (self.paused_pages, self.active_pages):
+            if page_list:
+                embed = page_list[0]
+                embed.description = f"{summary}\n\n{embed.description or ''}"
 
     @property
     def current_pages(self) -> list[discord.Embed]:
