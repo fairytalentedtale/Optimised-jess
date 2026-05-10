@@ -290,6 +290,7 @@ class Help(commands.Cog):
                     f"**Aliases:** `{prefix}hunt <pokemon>`, `{prefix}shinyhunt <pokemon>`\n"
                     f"**Examples:**\n"
                     f"• `{prefix}sh Pikachu`\n"
+                    f"• `{prefix}sh unown a, unown b, unown c`\n"
                     f"• `{prefix}sh Furfrou all` (hunt all Furfrou variants)"
                 ),
                 inline=False
@@ -306,7 +307,7 @@ class Help(commands.Cog):
 
             embed.add_field(
                 name="💡 Note",
-                value="You can hunt one Pokemon (or all its variants) at a time per server!",
+                value="You can hunt one or more Pokemon(if they all belong to same dex) at a time per server!",
                 inline=False
             )
 
