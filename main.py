@@ -128,6 +128,7 @@ async def on_ready():
         'cogs.hint_solver',
         'cogs.prediction',
         'cogs.category',
+        'cogs.captcha',
         'cogs.starboard_settings',
         'cogs.starboard_catch',
         'cogs.starboard_egg',
