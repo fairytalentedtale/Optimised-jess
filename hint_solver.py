@@ -1,4 +1,4 @@
-"""Hint solver cog — automatically solves Pokétwo hint messages"""
+"""Hint solver cog — automatically solves Pokétwo hint messagees"""
 import re
 import discord
 from discord.ext import commands
