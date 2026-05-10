@@ -14,7 +14,7 @@ class Help(commands.Cog):
     async def help_command(self, ctx, category: str = None):
         """Show help information
 
-        Categories: collection, category, hunt, settings, prediction, starboard, helpful, incense, owner, all
+        Categories: collection, category, hunt, settings, prediction, starboard, helpful, incense, captcha, owner, all
         """
         prefix = BOT_PREFIX[0]  # Use first prefix for examples
 
@@ -83,6 +83,12 @@ class Help(commands.Cog):
                 inline=False
             )
 
+            embed.add_field(
+                name="🔐 Captcha",
+                value=f"`{prefix}help captcha` - Captcha alert configuration",
+                inline=False
+            )
+
             if is_owner:
                 embed.add_field(
                     name="👑 Owner",
@@ -135,7 +141,11 @@ class Help(commands.Cog):
                 value=(
                     "Remove Pokemon from your collection\n"
                     f"**Aliases:** `{prefix}collection remove`\n"
-                    f"**Example:** `{prefix}cl remove Pikachu`"
+                    f"**Examples:**\n"
+                    f"• `{prefix}cl remove Pikachu`\n"
+                    f"• `{prefix}cl remove Pikachu, Charizard`\n"
+                    f"• `{prefix}cl remove Furfrou all` (removes all Furfrou variants)\n"
+                    f"• `{prefix}cl remove all Furfrou` (same as above)"
                 ),
                 inline=False
             )
@@ -233,6 +243,12 @@ class Help(commands.Cog):
                     f"**Example:** `{prefix}cat create Rares articuno, moltres, zapdos`\n\n"
                     f"`{prefix}cat edit <name> <pokemon>` - Edit a category (replaces all Pokemon)\n"
                     f"**Example:** `{prefix}cat edit Rares marshadow, lugia`\n\n"
+                    f"`{prefix}cat addpokemon <name> <pokemon>` - Add Pokemon to an existing category\n"
+                    f"**Aliases:** `{prefix}cat addpoke`\n"
+                    f"**Example:** `{prefix}cat addpokemon Rares hoopa, marshadow`\n\n"
+                    f"`{prefix}cat removepokemon <name> <pokemon>` - Remove specific Pokemon from a category\n"
+                    f"**Aliases:** `{prefix}cat removepoke`\n"
+                    f"**Example:** `{prefix}cat removepokemon Rares hoopa`\n\n"
                     f"`{prefix}cat delete <name>` - Delete a category\n"
                     f"**Example:** `{prefix}cat delete Rares`"
                 ),
@@ -244,7 +260,7 @@ class Help(commands.Cog):
                 value=(
                     "• Admins create categories with Pokemon lists\n"
                     "• Users can add entire categories to their collection at once\n"
-                    "• Supports 'all' variants (e.g., `arceus all`, `furfrou all`)\n"
+                    "• Supports `all` variants: `furfrou all` or `all furfrou`\n"
                     "• Category names are case-insensitive and can have spaces"
                 ),
                 inline=False
@@ -333,7 +349,8 @@ class Help(commands.Cog):
                 name=f"`{prefix}server-settings`",
                 value=(
                     "View all current server settings\n"
-                    f"**Aliases:** `{prefix}ss`, `{prefix}ssettings`, `{prefix}serversettings`"
+                    f"**Aliases:** `{prefix}ss`, `{prefix}ssettings`, `{prefix}serversettings`\n"
+                    "Shows: Rare Role, Regional Role, Best Name, Only-Pings status, Captcha Alert Channel"
                 ),
                 inline=False
             )
@@ -367,24 +384,27 @@ class Help(commands.Cog):
             )
 
             embed.add_field(
-                name=f"`{prefix}only-pings`",
+                name=f"`{prefix}toggle <feature>`",
                 value=(
-                    "Toggle only-pings mode (only send predictions when there are pings)\n"
-                    f"**Aliases:** `{prefix}op`, `{prefix}onlypings`\n"
+                    "Toggle server features on/off\n"
                     f"**Examples:**\n"
-                    f"• `{prefix}only-pings` - View current status\n"
-                    f"• `{prefix}only-pings true` - Enable\n"
-                    f"• `{prefix}only-pings false` - Disable"
+                    f"• `{prefix}toggle best_name` — Enable/disable the Shortest Name line in predictions\n"
+                    f"• `{prefix}toggle only_pings` — Enable/disable only-pings mode\n\n"
+                    f"**`only_pings`:** When enabled, predictions are only sent when there are active collectors, hunters, or ping roles. "
+                    f"Also accessible via `{prefix}only-pings true/false`"
                 ),
                 inline=False
             )
 
             embed.add_field(
-                name=f"`{prefix}toggle best_name`",
+                name=f"`{prefix}captcha-channel [#channel]`",
                 value=(
-                    "Enable/disable the **Shortest Name** line in predictions (off by default)\n"
-                    "When enabled, shows the shortest known name for each Pokemon\n"
-                    f"**Example:** `{prefix}toggle best_name`"
+                    "Set the channel where users get pinged when Pokétwo asks them to verify\n"
+                    f"**Aliases:** `{prefix}captchachannel`, `{prefix}setcaptcha`\n"
+                    f"• `{prefix}captcha-channel #alerts` — set the captcha alert channel\n"
+                    f"• `{prefix}captcha-channel` (no args) — clear and **disable** captcha alerts\n"
+                    "When a captcha is detected the bot pings the user with a **Verify** button linking to their captcha URL.\n"
+                    "Same user won't be re-pinged within 5 minutes if another captcha appears"
                 ),
                 inline=False
             )
@@ -394,7 +414,7 @@ class Help(commands.Cog):
                 value=(
                     "Clear all ping data (collections, shiny hunts, type pings, region pings) for this server\n"
                     f"**Aliases:** `{prefix}clearpings`, `{prefix}clearserverpings`, `{prefix}resetpings`\n"
-                    "• No argument → clears **all users** in the server (prompts for confirmation)\n"
+                    "• No argument → clears **all users** in the server (confirm/cancel buttons)\n"
                     "• With @user or user ID → clears only that user\n"
                     "⚠️ Requires server owner, administrator, or bot owner"
                 ),
@@ -829,6 +849,47 @@ class Help(commands.Cog):
                 inline=False
             )
 
+        # Captcha commands
+        elif category in ["captcha", "cap", "verify"]:
+            embed = discord.Embed(
+                title="🔐 Captcha Commands",
+                description=(
+                    "Automatically alerts users in a designated channel when Pokétwo asks them to verify. "
+                    "Feature is disabled per-server until a captcha channel is set."
+                ),
+                color=EMBED_COLOR
+            )
+
+            embed.add_field(
+                name=f"`{prefix}captcha-channel #channel`",
+                value=(
+                    "Set the channel where captcha alerts will be sent **(Admin only)**\n"
+                    f"**Aliases:** `{prefix}captchachannel`, `{prefix}setcaptcha`\n"
+                    f"**Example:** `{prefix}captcha-channel #alerts`"
+                ),
+                inline=False
+            )
+
+            embed.add_field(
+                name=f"`{prefix}captcha-channel` (no arguments)",
+                value=(
+                    "Clear the captcha channel and **disable** captcha alerts for this server **(Admin only)**"
+                ),
+                inline=False
+            )
+
+            embed.add_field(
+                name="🤖 How It Works",
+                value=(
+                    "• Bot watches every channel for Pokétwo's captcha message\n"
+                    "• When detected, pings the flagged user in the captcha alert channel\n"
+                    "• Alert includes a **Verify** button linking directly to their captcha URL\n"
+                    "• **5-minute cooldown** per user — won't re-ping within 5 minutes for repeated detections\n"
+                    "• If no captcha channel is set, the feature is silently disabled"
+                ),
+                inline=False
+            )
+
         # All commands
         elif category in ["all", "commands"]:
             embed = discord.Embed(
@@ -850,7 +911,8 @@ class Help(commands.Cog):
                 name="🗂️ Category",
                 value=(
                     f"`{prefix}cat add` • `{prefix}cat remove` • `{prefix}cat list` • `{prefix}cat info`\n"
-                    f"**Admin:** `{prefix}cat create` • `{prefix}cat edit` • `{prefix}cat delete`"
+                    f"**Admin:** `{prefix}cat create` • `{prefix}cat edit` • `{prefix}cat delete`\n"
+                    f"**Admin:** `{prefix}cat addpokemon` • `{prefix}cat removepokemon`"
                 ),
                 inline=False
             )
@@ -875,7 +937,8 @@ class Help(commands.Cog):
                 value=(
                     f"`{prefix}afk` • `{prefix}server-settings`\n"
                     f"`{prefix}clear-pings [@user]`\n"
-                    f"**Admin:** `{prefix}rare-role` • `{prefix}regional-role` • `{prefix}only-pings` • `{prefix}toggle best_name`"
+                    f"**Admin:** `{prefix}rare-role` • `{prefix}regional-role` • `{prefix}toggle best_name` • `{prefix}toggle only_pings`\n"
+                    f"**Admin:** `{prefix}captcha-channel [#channel]`"
                 ),
                 inline=False
             )
@@ -915,6 +978,12 @@ class Help(commands.Cog):
             )
 
             embed.add_field(
+                name="🔐 Captcha",
+                value=f"**Admin:** `{prefix}captcha-channel [#channel]`",
+                inline=False
+            )
+
+            embed.add_field(
                 name="🔍 Starboard Manual Check",
                 value=f"`{prefix}catchcheck` • `{prefix}eggcheck` • `{prefix}unboxcheck`",
                 inline=False
@@ -942,7 +1011,7 @@ class Help(commands.Cog):
         else:
             await ctx.reply(
                 f"❌ Unknown category: `{category}`\n"
-                f"Available categories: `collection`, `category`, `hunt`, `pings`, `settings`, `prediction`, `starboard`, `helpful`, `incense`, {'`owner`, ' if is_owner else ''}`all`\n"
+                f"Available categories: `collection`, `category`, `hunt`, `pings`, `settings`, `prediction`, `starboard`, `helpful`, `incense`, `captcha`, {'`owner`, ' if is_owner else ''}`all`\n"
                 f"Use `{prefix}help` to see the main help menu.",
                 mention_author=False
             )
@@ -1067,7 +1136,7 @@ class Help(commands.Cog):
     # Slash Commands  (registered automatically with the cog)
     # ------------------------------------------------------------------
     @app_commands.command(name="help", description="Show help information for the bot")
-    @app_commands.describe(category="Category: collection, category, hunt, pings, settings, prediction, starboard, helpful, incense, all")
+    @app_commands.describe(category="Category: collection, category, hunt, pings, settings, prediction, starboard, helpful, incense, captcha, all")
     async def slash_help(self, interaction: discord.Interaction, category: str = None):
         ctx = await commands.Context.from_interaction(interaction)
         await self.help_command(ctx, category=category)
