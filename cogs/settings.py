@@ -1,5 +1,4 @@
 """Server and user settings management"""
-import asyncio
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -279,6 +278,13 @@ class Settings(commands.Cog):
         best_name_enabled = settings.get('best_name_enabled', False)
         embed.add_field(name="Best Name", value="Enabled ✅" if best_name_enabled else "Disabled ❌", inline=True)
 
+        only_pings = settings.get('only_pings', False)
+        embed.add_field(name="Only-Pings", value="Enabled ✅" if only_pings else "Disabled ❌", inline=True)
+
+        captcha_channel_id = settings.get('captcha_channel_id')
+        captcha_val = f"<#{captcha_channel_id}>" if captcha_channel_id else "Not set (captcha alerts disabled)"
+        embed.add_field(name="Captcha Alert Channel", value=captcha_val, inline=True)
+
         embed.add_field(
             name="⭐ Starboard Settings",
             value="Use `p!starboard-settings` to view starboard channel configuration",
@@ -289,16 +295,31 @@ class Settings(commands.Cog):
         await ctx.reply(embed=embed, mention_author=False)
 
     # ------------------------------------------------------------------
-    # p!toggle best_name (server owners / admins)
+    # p!toggle <feature>  (server owners / admins)
+    # Supported: best_name, only_pings
     # ------------------------------------------------------------------
-    @commands.command(name="toggle")
+    @commands.group(name="toggle", invoke_without_command=True)
     @commands.has_permissions(administrator=True)
-    async def toggle_command(self, ctx, feature: str):
+    async def toggle_command(self, ctx, feature: str = None):
         """Toggle server features.
 
         Examples:
             p!toggle best_name
+            p!toggle only_pings
         """
+        if feature is None:
+            p = ctx.prefix
+            embed = discord.Embed(
+                title="⚙️ Toggle",
+                description=(
+                    f"`{p}toggle best_name` — Toggle best-name display\n"
+                    f"`{p}toggle only_pings` — Toggle only-pings mode"
+                ),
+                color=EMBED_COLOR
+            )
+            await ctx.reply(embed=embed, mention_author=False)
+            return
+
         feature = feature.lower().replace("-", "_")
 
         if feature == "best_name":
@@ -307,9 +328,17 @@ class Settings(commands.Cog):
             await self.db.set_best_name(ctx.guild.id, new_val)
             status = "enabled ✅" if new_val else "disabled ❌"
             await ctx.reply(f"Best Name display is now **{status}**", mention_author=False)
+
+        elif feature == "only_pings":
+            current = await self.db.get_only_pings(ctx.guild.id)
+            new_val = not current
+            await self.db.set_only_pings(ctx.guild.id, new_val)
+            status = "enabled ✅" if new_val else "disabled ❌"
+            await ctx.reply(f"Only-Pings mode is now **{status}**", mention_author=False)
+
         else:
             await ctx.reply(
-                f"❌ Unknown feature `{feature}`. Available: `best_name`",
+                f"❌ Unknown feature `{feature}`. Available: `best_name`, `only_pings`",
                 mention_author=False
             )
 
@@ -318,7 +347,8 @@ class Settings(commands.Cog):
         if isinstance(error, commands.MissingPermissions):
             await ctx.reply("❌ You need administrator permissions to use this command.", mention_author=False)
         elif isinstance(error, commands.MissingRequiredArgument):
-            await ctx.reply("❌ Usage: `p!toggle <feature>` (e.g. `p!toggle best_name`)", mention_author=False)
+            p = ctx.prefix
+            await ctx.reply(f"❌ Usage: `{p}toggle <feature>` (e.g. `{p}toggle best_name`, `{p}toggle only_pings`)", mention_author=False)
 
     # ------------------------------------------------------------------
     # Global settings (bot owner only)
@@ -340,8 +370,9 @@ class Settings(commands.Cog):
     @commands.command(name="only-pings", aliases=["op", "onlypings"])
     @commands.has_permissions(administrator=True)
     async def only_pings_command(self, ctx, enabled: bool = None):
-        """Toggle or view only-pings mode (Admin only)"""
+        """Toggle or view only-pings mode (Admin only). Also available as p!toggle only_pings"""
         if enabled is None:
+            # View current status
             current_status = await self.db.get_only_pings(ctx.guild.id)
             status_text = "enabled ✅" if current_status else "disabled ❌"
             embed = discord.Embed(
@@ -349,13 +380,13 @@ class Settings(commands.Cog):
                 description=f"Current status: **{status_text}**\n\nWhen enabled, predictions are only sent when there are collectors, hunters, or rare/regional/type/region pings.",
                 color=EMBED_COLOR
             )
-            embed.set_footer(text="Use 'p!only-pings true' or 'p!only-pings false' to change")
+            embed.set_footer(text="Use 'p!toggle only_pings' to toggle, or 'p!only-pings true/false' to set directly")
             await ctx.reply(embed=embed, mention_author=False)
             return
 
         await self.db.set_only_pings(ctx.guild.id, enabled)
-        status = "enabled" if enabled else "disabled"
-        await ctx.reply(f"✅ Only-pings mode {status}", mention_author=False)
+        status = "enabled ✅" if enabled else "disabled ❌"
+        await ctx.reply(f"Only-pings mode is now **{status}**", mention_author=False)
 
     @only_pings_command.error
     async def only_pings_error(self, ctx, error):
@@ -395,11 +426,9 @@ class Settings(commands.Cog):
         target_id   = None
         target_name = None
         if target is not None:
-            # Strip <@> mention formatting if present
             raw = target.strip("<@!>")
             if raw.isdigit():
                 target_id = int(raw)
-                # Try to get a display name (may fail if user left)
                 user_obj = self.bot.get_user(target_id)
                 if user_obj is None:
                     try:
@@ -410,6 +439,7 @@ class Settings(commands.Cog):
             else:
                 await ctx.reply("❌ Invalid user. Use a @mention or numeric user ID.", mention_author=False)
                 return
+
         # ── Permission check ───────────────────────────────────────────
         is_owner     = await self.bot.is_owner(ctx.author)
         is_srv_owner = ctx.author.id == ctx.guild.owner_id
@@ -422,72 +452,21 @@ class Settings(commands.Cog):
             )
             return
 
-        guild_id = ctx.guild.id
-        db       = self.db.db   # raw Motor database
-
-        # ── Confirmation prompt ────────────────────────────────────────
+        # ── Confirmation with buttons ──────────────────────────────────
         if target_id:
-            prompt_text = (
-                f"⚠️ This will clear **all ping data** for **{target_name}** (`{target_id}`) in **{ctx.guild.name}**.\n"
-                f"Reply with `confirm` within 30 seconds to proceed."
-            )
+            prompt_text = f"⚠️ This will clear **all ping data** for **{target_name}** (`{target_id}`) in **{ctx.guild.name}**."
         else:
-            prompt_text = (
-                f"⚠️ This will clear **all ping data for every user** in **{ctx.guild.name}**.\n"
-                f"Reply with `confirm` within 30 seconds to proceed."
-            )
+            prompt_text = f"⚠️ This will clear **all ping data for every user** in **{ctx.guild.name}**."
 
-        await ctx.reply(prompt_text, mention_author=False)
-
-        def check(m):
-            return m.author.id == ctx.author.id and m.channel.id == ctx.channel.id
-
-        try:
-            msg = await self.bot.wait_for("message", check=check, timeout=30)
-        except asyncio.TimeoutError:
-            await ctx.send("❌ Confirmation timed out. No data was cleared.")
-            return
-
-        if msg.content.strip().lower() != "confirm":
-            await ctx.send("❌ Cancelled. No data was cleared.")
-            return
-
-        # ── Clear data ─────────────────────────────────────────────────
-        if target_id:
-            col_res  = await db.collections.delete_many( {"user_id": target_id, "guild_id": guild_id})
-            shy_res  = await db.shiny_hunts.delete_many( {"user_id": target_id, "guild_id": guild_id})
-            type_res = await db.type_pings.delete_many(  {"user_id": target_id, "guild_id": guild_id})
-            rgn_res  = await db.region_pings.delete_many({"user_id": target_id, "guild_id": guild_id})
-
-            embed = discord.Embed(title="✅ User Ping Data Cleared", color=EMBED_COLOR)
-            embed.add_field(name="User",         value=f"{target_name} (`{target_id}`)", inline=False)
-            embed.add_field(name="Server",       value=ctx.guild.name,                   inline=False)
-            embed.add_field(name="Collections",  value=f"{col_res.deleted_count} removed",  inline=True)
-            embed.add_field(name="Shiny Hunts",  value=f"{shy_res.deleted_count} removed",  inline=True)
-            embed.add_field(name="Type Pings",   value=f"{type_res.deleted_count} removed", inline=True)
-            embed.add_field(name="Region Pings", value=f"{rgn_res.deleted_count} removed",  inline=True)
-
-        else:
-            col_res  = await db.collections.delete_many( {"guild_id": guild_id})
-            shy_res  = await db.shiny_hunts.delete_many( {"guild_id": guild_id})
-            type_res = await db.type_pings.delete_many(  {"guild_id": guild_id})
-            rgn_res  = await db.region_pings.delete_many({"guild_id": guild_id})
-
-            embed = discord.Embed(title="✅ Server Ping Data Cleared", color=EMBED_COLOR)
-            embed.add_field(name="Server",       value=ctx.guild.name,                   inline=False)
-            embed.add_field(name="Collections",  value=f"{col_res.deleted_count} removed",  inline=True)
-            embed.add_field(name="Shiny Hunts",  value=f"{shy_res.deleted_count} removed",  inline=True)
-            embed.add_field(name="Type Pings",   value=f"{type_res.deleted_count} removed", inline=True)
-            embed.add_field(name="Region Pings", value=f"{rgn_res.deleted_count} removed",  inline=True)
-
-        # ── Invalidate cache ───────────────────────────────────────────
-        if self.db.gcache:
-            self.db.gcache.invalidate_collectors(guild_id)
-            self.db.gcache.invalidate_shiny_hunts(guild_id)
-            self.db.gcache.invalidate_afk()
-
-        embed.set_footer(text=f"Cleared by {ctx.author} • Guild ID: {guild_id}")
-        await ctx.reply(embed=embed, mention_author=False)
+        view = _ClearPingsConfirmView(
+            author_id=ctx.author.id,
+            db=self.db,
+            bot=self.bot,
+            guild=ctx.guild,
+            target_id=target_id,
+            target_name=target_name,
+        )
+        await ctx.reply(prompt_text, view=view, mention_author=False)
 
     @clear_server_pings_command.error
     async def clear_server_pings_error(self, ctx, error):
@@ -527,8 +506,8 @@ class Settings(commands.Cog):
         ctx = await commands.Context.from_interaction(interaction)
         await self.only_pings_command(ctx, enabled=enabled)
 
-    @app_commands.command(name="toggle-feature", description="Toggle a server feature like best_name (Admin only)")
-    @app_commands.describe(feature="Feature to toggle, e.g. 'best_name'")
+    @app_commands.command(name="toggle-feature", description="Toggle a server feature (Admin only)")
+    @app_commands.describe(feature="Feature to toggle: 'best_name' or 'only_pings'")
     @app_commands.default_permissions(administrator=True)
     async def slash_toggle(self, interaction: discord.Interaction, feature: str):
         ctx = await commands.Context.from_interaction(interaction)
