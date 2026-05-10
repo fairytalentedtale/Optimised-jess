@@ -2620,7 +2620,7 @@
     "dex_number": 1019,
     "name": "Blossom Hydrapple",
     "other_names": {},
-    "is_variant": true,
+    "is_variant": false,
     "variant_of": null,
     "rarity": "Event"
   },
