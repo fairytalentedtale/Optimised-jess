@@ -2602,7 +2602,7 @@
   },
   {
     "dex_number": 69,
-    "name": "Beta Bellsprout",
+    "name": "Beta Bayleef",
     "other_names": {},
     "is_variant": false,
     "variant_of": null,
@@ -2614,6 +2614,46 @@
     "other_names": {},
     "is_variant": true,
     "variant_of": "Ledyba",
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 1019,
+    "name": "Blossom Hydrapple",
+    "other_names": {},
+    "is_variant": true,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 548,
+    "name": "Onion Petilil",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 46,
+    "name": "Mycena Paras",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 189,
+    "name": "Dandelion Jumpluff",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
+    "rarity": "Event"
+  },
+  {
+    "dex_number": 406,
+    "name": "Blooming Budew",
+    "other_names": {},
+    "is_variant": false,
+    "variant_of": null,
     "rarity": "Event"
   },
   {
