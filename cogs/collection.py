@@ -226,6 +226,8 @@ class Collection(commands.Cog):
         Examples:
             p!cl remove Pikachu
             p!cl remove Pikachu, Charizard
+            p!cl remove Furfrou all  (removes all Furfrou variants)
+            p!cl remove all Furfrou  (same as above)
         """
         names_list = [name.strip() for name in pokemon_names.split(",") if name.strip()]
 
@@ -237,12 +239,30 @@ class Collection(commands.Cog):
         not_found_pokemon = []
 
         for name in names_list:
-            pokemon = find_pokemon_by_name_flexible(name, self.pokemon_data)
+            # Normalize: support both "furfrou all" and "all furfrou"
+            name_lower = name.lower()
+            is_all = name_lower.endswith(" all") or name_lower.startswith("all ")
 
-            if pokemon and pokemon.get('name'):
-                removed_pokemon.append(pokemon['name'])
+            if is_all:
+                # Strip "all" from either end
+                if name_lower.startswith("all "):
+                    base_name = name[4:].strip()
+                else:
+                    base_name = name[:-4].strip()
+
+                variants = get_pokemon_with_variants(base_name, self.pokemon_data)
+
+                if variants:
+                    removed_pokemon.extend(variants)
+                else:
+                    not_found_pokemon.append(name)
             else:
-                not_found_pokemon.append(name)
+                pokemon = find_pokemon_by_name_flexible(name, self.pokemon_data)
+
+                if pokemon and pokemon.get('name'):
+                    removed_pokemon.append(pokemon['name'])
+                else:
+                    not_found_pokemon.append(name)
 
         if not removed_pokemon:
             error_msg = "No valid Pokemon names found"
@@ -341,7 +361,7 @@ class Collection(commands.Cog):
         await self.collection_add(ctx, pokemon_names=pokemon_names)
 
     @cl_group.command(name="remove", description="Remove Pokémon from your collection")
-    @app_commands.describe(pokemon_names="Pokémon name(s), comma-separated")
+    @app_commands.describe(pokemon_names="Pokémon name(s), comma-separated. Append 'all' for all forms e.g. 'Furfrou all'")
     async def slash_collection_remove(self, interaction: discord.Interaction, pokemon_names: str):
         ctx = await commands.Context.from_interaction(interaction)
         await self.collection_remove(ctx, pokemon_names=pokemon_names)
