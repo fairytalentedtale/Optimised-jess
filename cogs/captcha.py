@@ -20,15 +20,22 @@ CAPTCHA_COOLDOWN_SECONDS = 300  # 5 minutes
 
 
 class VerifyButton(discord.ui.View):
-    """A persistent-ish View with a single link button pointing to the captcha URL."""
+    """A persistent-ish View with a Verify link button and a Jump to Message button."""
 
-    def __init__(self, verify_url: str):
+    def __init__(self, verify_url: str, message_url: str):
         super().__init__(timeout=600)  # disappear after 10 min
         self.add_item(
             discord.ui.Button(
                 label="✅ Verify",
                 style=discord.ButtonStyle.link,
                 url=verify_url,
+            )
+        )
+        self.add_item(
+            discord.ui.Button(
+                label="🔗 Jump to Message",
+                style=discord.ButtonStyle.link,
+                url=message_url,
             )
         )
 
@@ -112,7 +119,7 @@ class Captcha(commands.Cog):
             await captcha_channel.send(
                 content=f"<@{user_id}>",
                 embed=embed,
-                view=VerifyButton(verify_url),
+                view=VerifyButton(verify_url, message.jump_url),
             )
         except discord.Forbidden:
             pass  # Bot lacks permission to send in the captcha channel
