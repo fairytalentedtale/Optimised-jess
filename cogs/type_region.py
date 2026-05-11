@@ -118,6 +118,26 @@ class TypePingView(discord.ui.View):
             btn.callback = self._make_callback(pokemon_type)
             self.add_item(btn)
 
+        # Enable All button
+        enable_all_btn = discord.ui.Button(
+            label="✅ Enable All",
+            style=discord.ButtonStyle.primary,
+            custom_id="tp_enable_all",
+            row=4,
+        )
+        enable_all_btn.callback = self._enable_all_callback
+        self.add_item(enable_all_btn)
+
+        # Disable All button
+        disable_all_btn = discord.ui.Button(
+            label="❌ Disable All",
+            style=discord.ButtonStyle.danger,
+            custom_id="tp_disable_all",
+            row=4,
+        )
+        disable_all_btn.callback = self._disable_all_callback
+        self.add_item(disable_all_btn)
+
     def _make_callback(self, pokemon_type: str):
         async def callback(interaction: discord.Interaction):
             if interaction.user.id != self.user_id:
@@ -144,6 +164,39 @@ class TypePingView(discord.ui.View):
             await interaction.response.edit_message(embed=embed, view=self)
 
         return callback
+
+    async def _enable_all_callback(self, interaction: discord.Interaction):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("This isn't yours!", ephemeral=True)
+            return
+
+        for t in ALL_TYPES:
+            if t not in self.enabled_types:
+                await self.cog.db.toggle_user_type_ping(self.user_id, self.guild_id, t)
+        self.enabled_types = list(ALL_TYPES)
+
+        if hasattr(self.cog, 'gcache'):
+            self.cog.gcache.invalidate_type_pingers(self.guild_id)
+
+        self._build_buttons()
+        embed = _type_embed(interaction.user, self.enabled_types)
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    async def _disable_all_callback(self, interaction: discord.Interaction):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("This isn't yours!", ephemeral=True)
+            return
+
+        for t in list(self.enabled_types):
+            await self.cog.db.toggle_user_type_ping(self.user_id, self.guild_id, t)
+        self.enabled_types = []
+
+        if hasattr(self.cog, 'gcache'):
+            self.cog.gcache.invalidate_type_pingers(self.guild_id)
+
+        self._build_buttons()
+        embed = _type_embed(interaction.user, self.enabled_types)
+        await interaction.response.edit_message(embed=embed, view=self)
 
     async def on_timeout(self):
         """Disable all buttons when the view expires."""
@@ -181,6 +234,26 @@ class RegionPingView(discord.ui.View):
             btn.callback = self._make_callback(region)
             self.add_item(btn)
 
+        # Enable All button
+        enable_all_btn = discord.ui.Button(
+            label="✅ Enable All",
+            style=discord.ButtonStyle.primary,
+            custom_id="rp_enable_all",
+            row=4,
+        )
+        enable_all_btn.callback = self._enable_all_callback
+        self.add_item(enable_all_btn)
+
+        # Disable All button
+        disable_all_btn = discord.ui.Button(
+            label="❌ Disable All",
+            style=discord.ButtonStyle.danger,
+            custom_id="rp_disable_all",
+            row=4,
+        )
+        disable_all_btn.callback = self._disable_all_callback
+        self.add_item(disable_all_btn)
+
     def _make_callback(self, region: str):
         async def callback(interaction: discord.Interaction):
             if interaction.user.id != self.user_id:
@@ -207,6 +280,39 @@ class RegionPingView(discord.ui.View):
             await interaction.response.edit_message(embed=embed, view=self)
 
         return callback
+
+    async def _enable_all_callback(self, interaction: discord.Interaction):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("This isn't yours!", ephemeral=True)
+            return
+
+        for r in ALL_REGIONS:
+            if r not in self.enabled_regions:
+                await self.cog.db.toggle_user_region_ping(self.user_id, self.guild_id, r)
+        self.enabled_regions = list(ALL_REGIONS)
+
+        if hasattr(self.cog, 'gcache'):
+            self.cog.gcache.invalidate_region_pingers(self.guild_id)
+
+        self._build_buttons()
+        embed = _region_embed(interaction.user, self.enabled_regions)
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    async def _disable_all_callback(self, interaction: discord.Interaction):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("This isn't yours!", ephemeral=True)
+            return
+
+        for r in list(self.enabled_regions):
+            await self.cog.db.toggle_user_region_ping(self.user_id, self.guild_id, r)
+        self.enabled_regions = []
+
+        if hasattr(self.cog, 'gcache'):
+            self.cog.gcache.invalidate_region_pingers(self.guild_id)
+
+        self._build_buttons()
+        embed = _region_embed(interaction.user, self.enabled_regions)
+        await interaction.response.edit_message(embed=embed, view=self)
 
     async def on_timeout(self):
         """Disable all buttons when the view expires."""
