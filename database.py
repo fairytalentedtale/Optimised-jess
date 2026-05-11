@@ -685,6 +685,24 @@ class Database:
         return settings.get('best_name_enabled', True) if settings else True
 
     # -------------------------------------------------------------------------
+    # Catch command line toggle (per guild)
+    # -------------------------------------------------------------------------
+    async def set_catch_command(self, guild_id: int, enabled: bool):
+        """Enable or disable the catch command line display for a guild"""
+        await self.db.guild_settings.update_one(
+            {"guild_id": guild_id},
+            {"$set": {"catch_command_enabled": enabled}},
+            upsert=True
+        )
+        if self.gcache:
+            self.gcache.invalidate_guild_settings(guild_id)
+
+    async def get_catch_command(self, guild_id: int) -> bool:
+        """Get catch command line setting for a guild (default: True)"""
+        settings = await self.db.guild_settings.find_one({"guild_id": guild_id})
+        return settings.get('catch_command_enabled', False) if settings else False
+
+    # -------------------------------------------------------------------------
     # Secondary model channel
     # -------------------------------------------------------------------------
     async def set_secondary_model_channel(self, channel_id: int):
