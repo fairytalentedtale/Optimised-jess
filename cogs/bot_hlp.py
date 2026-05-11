@@ -822,7 +822,7 @@ class Help(commands.Cog):
             )
 
             embed.add_field(
-                name="⏸️ Pause  *(Manage Channels)*",
+                name="⏸️ Pause  *(Allowed Role required)*",
                 value=(
                     f"`{prefix}inc pause` / `{prefix}inc p` — Pause **this** channel\n"
                     f"`{prefix}inc pause all` / `{prefix}inc p all` — Pause ALL monitored categories\n"
@@ -832,7 +832,7 @@ class Help(commands.Cog):
             )
 
             embed.add_field(
-                name="▶️ Resume  *(Manage Channels)*",
+                name="▶️ Resume  *(Allowed Role required)*",
                 value=(
                     f"`{prefix}inc resume` / `{prefix}inc r` — Resume **this** channel\n"
                     f"`{prefix}inc resume all` / `{prefix}inc r all` — Resume ALL paused channels\n"
@@ -844,6 +844,17 @@ class Help(commands.Cog):
             embed.add_field(
                 name="📋 Status",
                 value=f"`{prefix}inc list` — View paused and active channels across monitored categories",
+                inline=False
+            )
+
+            embed.add_field(
+                name="🔐 Allowed Roles  *(Manage Server)*",
+                value=(
+                    f"`{prefix}inc allowedroles` / `{prefix}inc ar` — List all roles allowed to pause/resume\n"
+                    f"`{prefix}inc allowedroles add @Role` — Add a role (also accepts role ID)\n"
+                    f"`{prefix}inc allowedroles remove @Role` — Remove a role\n"
+                    f"`{prefix}inc allowedroles clear` — Remove all allowed roles"
+                ),
                 inline=False
             )
 
@@ -1039,7 +1050,8 @@ class Help(commands.Cog):
                 name="🔥 Incense",
                 value=(
                     f"`{prefix}inc toggle` • `{prefix}inc cat add/remove/list`\n"
-                    f"`{prefix}inc pause [all]` • `{prefix}inc resume [all]` • `{prefix}inc list`"
+                    f"`{prefix}inc pause [all]` • `{prefix}inc resume [all]` • `{prefix}inc list`\n"
+                    f"**Admin:** `{prefix}inc allowedroles` • `{prefix}inc ar add/remove/clear`"
                 ),
                 inline=False
             )
