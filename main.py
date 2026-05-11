@@ -135,6 +135,7 @@ async def on_ready():
         'cogs.starboard_unbox',
         'cogs.bot_hlp',
         'cogs.model_control',
+        'cogs.reserve',
     ]
 
     try:
