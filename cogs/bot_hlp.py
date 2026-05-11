@@ -89,6 +89,12 @@ class Help(commands.Cog):
                 inline=False
             )
 
+            embed.add_field(
+                name="💾 Reserve",
+                value=f"`{prefix}help reserve` - Server-specific Pokemon reservation system",
+                inline=False
+            )
+
             if is_owner:
                 embed.add_field(
                     name="👑 Owner",
@@ -891,6 +897,64 @@ class Help(commands.Cog):
                 inline=False
             )
 
+        # Reserve commands
+        elif category in ["reserve", "res", "r"]:
+            embed = discord.Embed(
+                title="💾 Reserve Commands",
+                description="Server-specific Pokémon reservation system. Users can reserve Pokemon they want to collect!",
+                color=EMBED_COLOR
+            )
+
+            embed.add_field(
+                name="📋 View Reserves",
+                value=(
+                    f"`{prefix}r list` - View all reserves in the server\n"
+                    f"`{prefix}r list @user` - View a specific user's reserves"
+                ),
+                inline=False
+            )
+
+            embed.add_field(
+                name="➕ Remove from Your Reserves",
+                value=(
+                    f"`{prefix}r remove p <pokemon,...>` - Remove Pokemon\n"
+                    f"`{prefix}r remove cat <category>` - Remove category\n"
+                    f"`{prefix}r clear` - Clear all your reserves\n"
+                    f"**Aliases:** `pokemon`/`poke`/`p` • `category`/`cat`"
+                ),
+                inline=False
+            )
+
+            embed.add_field(
+                name="🔐 Admin: Add to User's Reserves",
+                value=(
+                    f"`{prefix}r add p @user <pokemon,...>` - Add Pokemon\n"
+                    f"`{prefix}r add cat @user <category>` - Add category"
+                ),
+                inline=False
+            )
+
+            embed.add_field(
+                name="🔐 Admin: Remove from User's Reserves",
+                value=(
+                    f"`{prefix}r remove p @user <pokemon,...>` - Remove Pokemon\n"
+                    f"`{prefix}r remove cat @user <category>` - Remove category\n"
+                    f"`{prefix}r clear @user` - Clear user's reserves\n"
+                    f"`{prefix}r clear --all` - Clear entire server"
+                ),
+                inline=False
+            )
+
+            embed.add_field(
+                name="🛠️ Admin: Allowed Roles",
+                value=(
+                    f"`{prefix}r allowedroles` - View allowed roles\n"
+                    f"`{prefix}r allowedroles add <@role>` - Add role\n"
+                    f"`{prefix}r allowedroles remove <@role>` - Remove role"
+                ),
+                inline=False
+            )
+
         # All commands
         elif category in ["all", "commands"]:
             embed = discord.Embed(
@@ -985,6 +1049,17 @@ class Help(commands.Cog):
             )
 
             embed.add_field(
+                name="💾 Reserve",
+                value=(
+                    f"`{prefix}r list` • `{prefix}r list @user`\n"
+                    f"`{prefix}r remove p` • `{prefix}r remove cat` • `{prefix}r clear`\n"
+                    f"**Admin:** `{prefix}r add p @user` • `{prefix}r add cat @user` • `{prefix}r remove p @user`\n"
+                    f"**Admin:** `{prefix}r clear @user` • `{prefix}r clear --all`"
+                ),
+                inline=False
+            )
+
+            embed.add_field(
                 name="🔍 Starboard Manual Check",
                 value=f"`{prefix}catchcheck` • `{prefix}eggcheck` • `{prefix}unboxcheck`",
                 inline=False
@@ -1012,7 +1087,7 @@ class Help(commands.Cog):
         else:
             await ctx.reply(
                 f"❌ Unknown category: `{category}`\n"
-                f"Available categories: `collection`, `category`, `hunt`, `pings`, `settings`, `prediction`, `starboard`, `helpful`, `incense`, `captcha`, {'`owner`, ' if is_owner else ''}`all`\n"
+                f"Available categories: `collection`, `category`, `hunt`, `pings`, `settings`, `prediction`, `starboard`, `helpful`, `incense`, `captcha`, `reserve`, {'`owner`, ' if is_owner else ''}`all`\n"
                 f"Use `{prefix}help` to see the main help menu.",
                 mention_author=False
             )
@@ -1137,7 +1212,7 @@ class Help(commands.Cog):
     # Slash Commands  (registered automatically with the cog)
     # ------------------------------------------------------------------
     @app_commands.command(name="help", description="Show help information for the bot")
-    @app_commands.describe(category="Category: collection, category, hunt, pings, settings, prediction, starboard, helpful, incense, captcha, all")
+    @app_commands.describe(category="Category: collection, category, hunt, pings, settings, prediction, starboard, helpful, incense, captcha, reserve, all")
     async def slash_help(self, interaction: discord.Interaction, category: str = None):
         ctx = await commands.Context.from_interaction(interaction)
         await self.help_command(ctx, category=category)
