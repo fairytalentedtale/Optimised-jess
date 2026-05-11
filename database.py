@@ -52,6 +52,13 @@ class Database:
             await self.db.collections.create_index([("user_id", 1), ("guild_id", 1)])
             await self.db.collections.create_index("pokemon")
 
+            # Reserves — per-user, per-guild
+            await self.db.reserves.create_index([("user_id", 1), ("guild_id", 1)], unique=True)
+            await self.db.reserves.create_index([("guild_id", 1), ("pokemon", 1)])
+
+            # Reserve allowed roles — per-guild
+            await self.db.reserve_allowed_roles.create_index("guild_id", unique=True)
+
             # Shiny hunts
             await self.db.shiny_hunts.create_index([("user_id", 1), ("guild_id", 1)])
             await self.db.shiny_hunts.create_index("pokemon")
@@ -715,3 +722,97 @@ class Database:
         """Get the captcha alert channel ID for a guild, or None if not set."""
         settings = await self.db.guild_settings.find_one({"guild_id": guild_id})
         return settings.get('captcha_channel_id') if settings else None
+
+    # -------------------------------------------------------------------------
+    # Reserve operations
+    # -------------------------------------------------------------------------
+    async def add_pokemon_to_reserve(self, user_id: int, guild_id: int, pokemon_names: List[str]):
+        """Add Pokemon to a user's reserve list for this guild."""
+        await self.db.reserves.update_one(
+            {"user_id": user_id, "guild_id": guild_id},
+            {"$addToSet": {"pokemon": {"$each": pokemon_names}}},
+            upsert=True
+        )
+        if self.gcache:
+            self.gcache.invalidate_reserves(guild_id)
+
+    async def remove_pokemon_from_reserve(self, user_id: int, guild_id: int, pokemon_names: List[str]):
+        """Remove Pokemon from a user's reserve list for this guild."""
+        result = await self.db.reserves.update_one(
+            {"user_id": user_id, "guild_id": guild_id},
+            {"$pullAll": {"pokemon": pokemon_names}}
+        )
+        if self.gcache:
+            self.gcache.invalidate_reserves(guild_id)
+        return result.modified_count > 0
+
+    async def clear_user_reserve(self, user_id: int, guild_id: int) -> bool:
+        """Clear all reserves for a specific user in this guild."""
+        result = await self.db.reserves.delete_one(
+            {"user_id": user_id, "guild_id": guild_id}
+        )
+        if self.gcache:
+            self.gcache.invalidate_reserves(guild_id)
+        return result.deleted_count > 0
+
+    async def clear_all_reserves(self, guild_id: int) -> int:
+        """Clear all reserves in a guild. Returns count deleted."""
+        result = await self.db.reserves.delete_many({"guild_id": guild_id})
+        if self.gcache:
+            self.gcache.invalidate_reserves(guild_id)
+        return result.deleted_count
+
+    async def get_user_reserve(self, user_id: int, guild_id: int) -> List[str]:
+        """Get the reserve list for a specific user in this guild."""
+        doc = await self.db.reserves.find_one({"user_id": user_id, "guild_id": guild_id})
+        return doc.get('pokemon', []) if doc else []
+
+    async def get_all_reserves(self, guild_id: int) -> List[dict]:
+        """Return all reserve docs for a guild: [{user_id, pokemon:[...]}, ...]"""
+        docs = await self.db.reserves.find(
+            {"guild_id": guild_id},
+            {"user_id": 1, "pokemon": 1, "_id": 0}
+        ).to_list(length=None)
+        return docs
+
+    async def get_reserve_holders_for_pokemon(self, guild_id: int, pokemon_names: List[str]) -> List[int]:
+        """Return user_ids who have any of the given Pokemon reserved in this guild."""
+        names_set = set(pokemon_names)
+        docs = await self.db.reserves.find(
+            {"guild_id": guild_id, "pokemon": {"$in": list(names_set)}},
+            {"user_id": 1}
+        ).to_list(length=None)
+        return [d['user_id'] for d in docs]
+
+    # -------------------------------------------------------------------------
+    # Reserve allowed roles
+    # -------------------------------------------------------------------------
+    async def get_reserve_allowed_roles(self, guild_id: int) -> List[int]:
+        """Get list of role IDs allowed to use reserve commands."""
+        doc = await self.db.reserve_allowed_roles.find_one({"guild_id": guild_id})
+        return doc.get('role_ids', []) if doc else []
+
+    async def add_reserve_allowed_role(self, guild_id: int, role_id: int):
+        """Add a role to the reserve allowed list."""
+        await self.db.reserve_allowed_roles.update_one(
+            {"guild_id": guild_id},
+            {"$addToSet": {"role_ids": role_id}},
+            upsert=True
+        )
+        if self.gcache:
+            self.gcache.invalidate_reserve_roles(guild_id)
+
+    async def remove_reserve_allowed_role(self, guild_id: int, role_id: int):
+        """Remove a role from the reserve allowed list."""
+        await self.db.reserve_allowed_roles.update_one(
+            {"guild_id": guild_id},
+            {"$pull": {"role_ids": role_id}}
+        )
+        if self.gcache:
+            self.gcache.invalidate_reserve_roles(guild_id)
+
+    async def clear_reserve_allowed_roles(self, guild_id: int):
+        """Clear all allowed roles for reserves in a guild."""
+        await self.db.reserve_allowed_roles.delete_one({"guild_id": guild_id})
+        if self.gcache:
+            self.gcache.invalidate_reserve_roles(guild_id)
