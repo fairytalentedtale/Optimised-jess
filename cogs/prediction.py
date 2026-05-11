@@ -279,13 +279,19 @@ class Prediction(commands.Cog):
                 if regional_role_id:
                     regional_ping = f"<@&{regional_role_id}>"
 
+        # ── Phase 4: reserve check — if reserved, only reserve pings matter ──
+        reserve_holders = await self.gcache.get_reserve_holders(guild_id, [pokemon_name], afk_snapshot.collection_afk)
+        is_reserved = len(reserve_holders) > 0
+
         return {
-            "hunters":       hunters,
-            "collectors":    collectors,
-            "rare_ping":     rare_ping,
-            "regional_ping": regional_ping,
-            "type_pingers":  type_pingers,
-            "rgn_pingers":   rgn_pingers,
+            "hunters":        hunters,
+            "collectors":     collectors,
+            "rare_ping":      rare_ping,
+            "regional_ping":  regional_ping,
+            "type_pingers":   type_pingers,
+            "rgn_pingers":    rgn_pingers,
+            "reserve_holders": reserve_holders,
+            "is_reserved":    is_reserved,
         }
 
     # ------------------------------------------------------------------
@@ -320,6 +326,13 @@ class Prediction(commands.Cog):
             best = get_best_name(name)
             if best:
                 lines.append(f"Shortest Name: {best}")
+
+        # If reserved: only show reserve pings, suppress everything else
+        if ping_data["is_reserved"]:
+            reserve_mentions = " ".join([f"<@{uid}>" for uid in ping_data["reserve_holders"]])
+            lines.append(f"Reserve Pings: {reserve_mentions}")
+            lines.append("⚠️ **This Pokémon is reserved — please do not catch it!**")
+            return "\n".join(lines)
 
         if ping_data["rare_ping"]:
             lines.append(f"Rare Ping: {ping_data['rare_ping']}")
@@ -381,8 +394,13 @@ class Prediction(commands.Cog):
         """
         Synchronous check — ping_data already fetched, only_pings already known.
         Avoids an extra DB call for get_only_pings().
+        Reserved spawns always send (reserve holders need to be notified).
         """
         if not only_pings_enabled:
+            return True
+
+        # Reserved pokemon always get sent so reserve holders are notified
+        if ping_data.get("is_reserved"):
             return True
 
         return (
@@ -575,27 +593,33 @@ class Prediction(commands.Cog):
                                                 if best:
                                                     lines.append(f"Shortest Name: {best}")
 
-                                            if ping_data["rare_ping"]:
-                                                lines.append(f"Rare Ping: {ping_data['rare_ping']}")
-                                            if ping_data["regional_ping"]:
-                                                lines.append(f"Regional Pings: {ping_data['regional_ping']}")
-                                            if ping_data["hunters"]:
-                                                lines.append(f"Shiny Hunters: {' '.join(ping_data['hunters'])}")
-                                            if ping_data["collectors"]:
-                                                collector_mentions = " ".join(
-                                                    [f"<@{uid}>" for uid in ping_data["collectors"]]
-                                                )
-                                                lines.append(f"Collectors: {collector_mentions}")
-                                            if ping_data["type_pingers"]:
-                                                type_mentions = " ".join(
-                                                    [f"<@{uid}>" for uid in ping_data["type_pingers"]]
-                                                )
-                                                lines.append(f"Type Pings: {type_mentions}")
-                                            if ping_data["rgn_pingers"]:
-                                                rgn_mentions = " ".join(
-                                                    [f"<@{uid}>" for uid in ping_data["rgn_pingers"]]
-                                                )
-                                                lines.append(f"Region Pings: {rgn_mentions}")
+                                            # Reserve check: if reserved suppress all other pings
+                                            if ping_data["is_reserved"]:
+                                                reserve_mentions = " ".join([f"<@{uid}>" for uid in ping_data["reserve_holders"]])
+                                                lines.append(f"Reserve Pings: {reserve_mentions}")
+                                                lines.append("⚠️ **This Pokémon is reserved — please do not catch it!**")
+                                            else:
+                                                if ping_data["rare_ping"]:
+                                                    lines.append(f"Rare Ping: {ping_data['rare_ping']}")
+                                                if ping_data["regional_ping"]:
+                                                    lines.append(f"Regional Pings: {ping_data['regional_ping']}")
+                                                if ping_data["hunters"]:
+                                                    lines.append(f"Shiny Hunters: {' '.join(ping_data['hunters'])}")
+                                                if ping_data["collectors"]:
+                                                    collector_mentions = " ".join(
+                                                        [f"<@{uid}>" for uid in ping_data["collectors"]]
+                                                    )
+                                                    lines.append(f"Collectors: {collector_mentions}")
+                                                if ping_data["type_pingers"]:
+                                                    type_mentions = " ".join(
+                                                        [f"<@{uid}>" for uid in ping_data["type_pingers"]]
+                                                    )
+                                                    lines.append(f"Type Pings: {type_mentions}")
+                                                if ping_data["rgn_pingers"]:
+                                                    rgn_mentions = " ".join(
+                                                        [f"<@{uid}>" for uid in ping_data["rgn_pingers"]]
+                                                    )
+                                                    lines.append(f"Region Pings: {rgn_mentions}")
 
                                             await message.channel.send(
                                                 "\n".join(lines),
