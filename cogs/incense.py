@@ -154,12 +154,7 @@ def incense_control_check():
     """Prefix command check: user must have an allowed incense role."""
     async def predicate(ctx: commands.Context) -> bool:
         if not await _member_has_allowed_role(ctx.bot.db, ctx.author):
-            embed = discord.Embed(
-                description="❌ You don't have a role that's allowed to use incense commands.\nAsk an admin to run `inc allowedroles add <role>`.",
-                color=config.EMBED_COLOR
-            )
-            await ctx.send(embed=embed, reference=ctx.message, mention_author=False)
-            return False
+            raise commands.CheckFailure("incense_no_role")
         return True
     return commands.check(predicate)
 
@@ -415,6 +410,18 @@ class Incense(commands.Cog):
 
     def _bot_mention(self) -> str:
         return self.bot.user.mention if self.bot.user else "@MiniMeowth"
+
+    async def cog_command_error(self, ctx: commands.Context, error: Exception):
+        """Handle check failures from incense_control_check cleanly (one message only)."""
+        if isinstance(error, commands.CheckFailure) and str(error) == "incense_no_role":
+            embed = discord.Embed(
+                description="❌ You don't have a role that's allowed to use incense commands.\nAsk an admin to run `inc allowedroles add <role>`.",
+                color=config.EMBED_COLOR
+            )
+            await ctx.send(embed=embed, reference=ctx.message, mention_author=False)
+            return
+        # Re-raise anything else so the global error handler still sees it
+        raise error
 
     # ── listener ─────────────────────────────
 
