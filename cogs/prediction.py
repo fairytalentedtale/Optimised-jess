@@ -304,12 +304,14 @@ class Prediction(commands.Cog):
         guild_id: int,
         *,
         show_best_name: bool = False,
+        show_catch_command: bool = False,
     ) -> str:
         """
         Gather ALL ping data in a single batched call and build the output string.
 
         Output order:
             <name>: <confidence>%
+            `<@716390085896962058> c <name>`  ← only if catch_command enabled
             Shortest Name: <n>          ← only if best_name enabled
             Rare Ping: <@&role>         ← only if applicable
             Regional Pings: <@&role>    ← only if applicable
@@ -321,6 +323,9 @@ class Prediction(commands.Cog):
         ping_data = await self._get_all_ping_data(name, guild_id)
 
         lines = [format_pokemon_prediction(name, confidence)]
+
+        if show_catch_command:
+            lines.append(f"`<@716390085896962058> c {name.lower()}`")
 
         if show_best_name:
             best = get_best_name(name)
@@ -371,7 +376,8 @@ class Prediction(commands.Cog):
 
             guild_settings = await self.gcache.get_guild_settings(guild_id)
             show_best = guild_settings.get('best_name_enabled', False)
-            return await self.build_prediction_output(name, confidence, guild_id, show_best_name=show_best)
+            show_catch = guild_settings.get('catch_command_enabled', False)
+            return await self.build_prediction_output(name, confidence, guild_id, show_best_name=show_best, show_catch_command=show_catch)
 
         except ValueError as e:
             error_msg = str(e)
@@ -525,8 +531,9 @@ class Prediction(commands.Cog):
                     if name and confidence:
                         guild_settings = await self.gcache.get_guild_settings(message.guild.id)
                         show_best = guild_settings.get('best_name_enabled', False)
+                        show_catch = guild_settings.get('catch_command_enabled', False)
                         output = await self.build_prediction_output(
-                            name, confidence, message.guild.id, show_best_name=show_best
+                            name, confidence, message.guild.id, show_best_name=show_best, show_catch_command=show_catch
                         )
                         await message.channel.send(output, allowed_mentions=NO_MENTIONS)
 
@@ -580,6 +587,7 @@ class Prediction(commands.Cog):
                                         guild_settings = await self.gcache.get_guild_settings(message.guild.id)
                                         only_pings_enabled = guild_settings.get('only_pings', False)
                                         show_best = guild_settings.get('best_name_enabled', False)
+                                        show_catch = guild_settings.get('catch_command_enabled', False)
 
                                         should_send = self.should_send_prediction_from_data(
                                             only_pings_enabled, ping_data
@@ -587,6 +595,9 @@ class Prediction(commands.Cog):
 
                                         if should_send:
                                             lines = [format_pokemon_prediction(name, confidence)]
+
+                                            if show_catch:
+                                                lines.append(f"`<@716390085896962058> c {name.lower()}`")
 
                                             if show_best:
                                                 best = get_best_name(name)
