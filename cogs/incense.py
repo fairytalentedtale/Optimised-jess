@@ -143,7 +143,10 @@ async def _restore_poketwo_in_category(category: discord.CategoryChannel):
 # ─────────────────────────────────────────────
 
 async def _member_has_allowed_role(db, member: discord.Member) -> bool:
-    """Return True if the member has at least one role in the guild's allowed list."""
+    """Return True if the member is an admin or has at least one role in the guild's allowed list."""
+    # Admins bypass the role requirement entirely
+    if member.guild_permissions.manage_guild:
+        return True
     allowed = await _get_allowed_roles(db, member.guild.id)
     if not allowed:
         return False
