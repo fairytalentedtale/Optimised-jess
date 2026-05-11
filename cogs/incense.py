@@ -737,7 +737,7 @@ class Incense(commands.Cog):
             inline=False
         )
         embed.add_field(
-            name="⏸️ Pause  *(IncenseControl role)*",
+            name="⏸️ Pause  *(Allowed Role required)*",
             value=(
                 f"`/inc pause` — Pause **this** channel\n"
                 f"`/inc pause all` — Pause ALL channels in monitored categories\n"
@@ -747,7 +747,7 @@ class Incense(commands.Cog):
             inline=False
         )
         embed.add_field(
-            name="▶️ Resume  *(IncenseControl role)*",
+            name="▶️ Resume  *(Allowed Role required)*",
             value=(
                 f"`/inc resume` — Resume **this** channel\n"
                 f"`/inc resume all` — Resume ALL paused channels\n"
@@ -760,9 +760,18 @@ class Incense(commands.Cog):
         embed.add_field(
             name="📋 Status",
             value=(
-                f"`/inc list paused` — Channels where Poketwo is restricted\n"
-                f"`/inc list resumed` — Channels where Poketwo is active\n"
-                f"`{p}inc list paused`  ·  `{p}inc list resumed`"
+                f"`/inc list` — View paused and active channels across monitored categories\n"
+                f"`{p}inc list` — same"
+            ),
+            inline=False
+        )
+        embed.add_field(
+            name="🔐 Allowed Roles  *(Manage Server)*",
+            value=(
+                f"`{p}inc allowedroles` / `{p}inc ar` — List roles allowed to pause/resume\n"
+                f"`{p}inc allowedroles add @Role` — Add a role (also accepts role ID)\n"
+                f"`{p}inc allowedroles remove @Role` — Remove a role\n"
+                f"`{p}inc allowedroles clear` — Remove all allowed roles"
             ),
             inline=False
         )
@@ -776,7 +785,7 @@ class Incense(commands.Cog):
             ),
             inline=False
         )
-        embed.set_footer(text="IncenseControl role required for pause/resume · Manage Server for setup/toggle")
+        embed.set_footer(text="Allowed Role required for pause/resume · Manage Server for setup/allowedroles")
         await interaction.response.send_message(embed=embed)
 
     # ══════════════════════════════════════════
@@ -1261,7 +1270,7 @@ class Incense(commands.Cog):
             inline=False
         )
         embed.add_field(
-            name="⏸️ Pause  *(IncenseControl role)*",
+            name="⏸️ Pause  *(Allowed Role required)*",
             value=(
                 f"`{p}inc pause` / `{p}inc p` — Pause **this** channel\n"
                 f"`{p}inc pause all` / `{p}inc p all` — Pause ALL monitored categories\n"
@@ -1270,7 +1279,7 @@ class Incense(commands.Cog):
             inline=False
         )
         embed.add_field(
-            name="▶️ Resume  *(IncenseControl role)*",
+            name="▶️ Resume  *(Allowed Role required)*",
             value=(
                 f"`{p}inc resume` / `{p}inc r` — Resume **this** channel\n"
                 f"`{p}inc resume all` / `{p}inc r all` — Resume ALL paused channels\n"
@@ -1281,8 +1290,16 @@ class Incense(commands.Cog):
         )
         embed.add_field(
             name="📋 Status",
+            value=f"`{p}inc list` — View paused and active channels across monitored categories",
+            inline=False
+        )
+        embed.add_field(
+            name="🔐 Allowed Roles  *(Manage Server)*",
             value=(
-                f"`{p}inc list` — check paused and resumed incenses\n"
+                f"`{p}inc allowedroles` / `{p}inc ar` — List roles allowed to pause/resume\n"
+                f"`{p}inc allowedroles add @Role` — Add a role (also accepts role ID)\n"
+                f"`{p}inc allowedroles remove @Role` — Remove a role\n"
+                f"`{p}inc allowedroles clear` — Remove all allowed roles"
             ),
             inline=False
         )
@@ -1296,7 +1313,7 @@ class Incense(commands.Cog):
             ),
             inline=False
         )
-        embed.set_footer(text="Slash versions: /inc <subcommand>")
+        embed.set_footer(text="Allowed Role required for pause/resume · Manage Server for setup/allowedroles · Slash: /inc <subcommand>")
         await ctx.send(embed=embed, reference=ctx.message, mention_author=False)
 
 
