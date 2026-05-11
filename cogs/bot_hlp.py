@@ -358,7 +358,7 @@ class Help(commands.Cog):
                 value=(
                     "View all current server settings\n"
                     f"**Aliases:** `{prefix}ss`, `{prefix}ssettings`, `{prefix}serversettings`\n"
-                    "Shows: Rare Role, Regional Role, Best Name, Only-Pings status, Captcha Alert Channel"
+                    "Shows: Rare Role, Regional Role, Best Name, Only-Pings status, catch_command status, Captcha Alert Channel"
                 ),
                 inline=False
             )
@@ -398,6 +398,7 @@ class Help(commands.Cog):
                     f"**Examples:**\n"
                     f"• `{prefix}toggle best_name` — Enable/disable the Shortest Name line in predictions\n"
                     f"• `{prefix}toggle only_pings` — Enable/disable only-pings mode\n\n"
+                    f"• `{prefix}toggle catch_command` — Enable/disable catch_command mode\n\n"
                     f"**`only_pings`:** When enabled, predictions are only sent when there are active collectors, hunters, or ping roles. "
                     f"Also accessible via `{prefix}only-pings true/false`"
                 ),
