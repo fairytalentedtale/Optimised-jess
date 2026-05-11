@@ -50,6 +50,13 @@ async def _get_paused_channels(db, guild_id: int) -> list[int]:
 async def _set_paused_channels(db, guild_id: int, channels: list[int]):
     await _save_guild_doc(db, guild_id, {"incense_paused_channels": channels})
 
+async def _get_allowed_roles(db, guild_id: int) -> list[int]:
+    doc = await _get_guild_doc(db, guild_id)
+    return doc.get("incense_allowed_roles", [])
+
+async def _set_allowed_roles(db, guild_id: int, roles: list[int]):
+    await _save_guild_doc(db, guild_id, {"incense_allowed_roles": roles})
+
 
 # ─────────────────────────────────────────────
 #  Permission helpers
@@ -129,6 +136,47 @@ async def _restore_poketwo_in_category(category: discord.CategoryChannel):
             synced += 1
 
     return synced, already_synced
+
+
+# ─────────────────────────────────────────────
+#  Incense allowed-roles check
+# ─────────────────────────────────────────────
+
+async def _member_has_allowed_role(db, member: discord.Member) -> bool:
+    """Return True if the member has at least one role in the guild's allowed list."""
+    allowed = await _get_allowed_roles(db, member.guild.id)
+    if not allowed:
+        return False
+    member_role_ids = {r.id for r in member.roles}
+    return bool(member_role_ids & set(allowed))
+
+def incense_control_check():
+    """Prefix command check: user must have an allowed incense role."""
+    async def predicate(ctx: commands.Context) -> bool:
+        if not await _member_has_allowed_role(ctx.bot.db, ctx.author):
+            embed = discord.Embed(
+                description="❌ You don't have a role that's allowed to use incense commands.\nAsk an admin to run `inc allowedroles add <role>`.",
+                color=config.EMBED_COLOR
+            )
+            await ctx.send(embed=embed, reference=ctx.message, mention_author=False)
+            return False
+        return True
+    return commands.check(predicate)
+
+def incense_control_check_slash():
+    """Slash command check: user must have an allowed incense role."""
+    async def predicate(interaction: discord.Interaction) -> bool:
+        if not await _member_has_allowed_role(interaction.client.db, interaction.user):
+            await interaction.response.send_message(
+                embed=discord.Embed(
+                    description="❌ You don't have a role that's allowed to use incense commands.\nAsk an admin to run `inc allowedroles add <role>`.",
+                    color=config.EMBED_COLOR
+                ),
+                ephemeral=True
+            )
+            return False
+        return True
+    return app_commands.check(predicate)
 
 
 # ─────────────────────────────────────────────
@@ -499,7 +547,7 @@ class Incense(commands.Cog):
     @app_commands.choices(scope=[
         app_commands.Choice(name="all", value="all"),
     ])
-    @app_commands.checks.has_permissions(manage_channels=True)
+    @incense_control_check_slash()
     async def inc_pause(self, interaction: discord.Interaction, scope: str = None):
         await interaction.response.defer()
         cats = await _get_categories(self.db, interaction.guild_id)
@@ -572,7 +620,7 @@ class Incense(commands.Cog):
     @app_commands.choices(scope=[
         app_commands.Choice(name="all", value="all"),
     ])
-    @app_commands.checks.has_permissions(manage_channels=True)
+    @incense_control_check_slash()
     async def inc_resume(self, interaction: discord.Interaction, scope: str = None):
         await interaction.response.defer()
         cats = await _get_categories(self.db, interaction.guild_id)
@@ -689,7 +737,7 @@ class Incense(commands.Cog):
             inline=False
         )
         embed.add_field(
-            name="⏸️ Pause  *(Manage Channels)*",
+            name="⏸️ Pause  *(IncenseControl role)*",
             value=(
                 f"`/inc pause` — Pause **this** channel\n"
                 f"`/inc pause all` — Pause ALL channels in monitored categories\n"
@@ -699,7 +747,7 @@ class Incense(commands.Cog):
             inline=False
         )
         embed.add_field(
-            name="▶️ Resume  *(Manage Channels)*",
+            name="▶️ Resume  *(IncenseControl role)*",
             value=(
                 f"`/inc resume` — Resume **this** channel\n"
                 f"`/inc resume all` — Resume ALL paused channels\n"
@@ -728,7 +776,7 @@ class Incense(commands.Cog):
             ),
             inline=False
         )
-        embed.set_footer(text="Manage Channels required for pause/resume · Manage Server for setup/toggle")
+        embed.set_footer(text="IncenseControl role required for pause/resume · Manage Server for setup/toggle")
         await interaction.response.send_message(embed=embed)
 
     # ══════════════════════════════════════════
@@ -877,10 +925,139 @@ class Incense(commands.Cog):
             )
         await ctx.send(embed=embed, reference=ctx.message, mention_author=False)
 
+    # ── allowedroles ─────────────────────────
+
+    @inc_prefix.group(name="allowedroles", aliases=["ar"], invoke_without_command=True)
+    @commands.has_permissions(manage_guild=True)
+    async def inc_prefix_allowedroles(self, ctx: commands.Context):
+        """List all roles allowed to use pause/resume. Subcommands: add, remove, clear."""
+        allowed = await _get_allowed_roles(self.db, ctx.guild.id)
+        embed = discord.Embed(title="🔐 Incense Allowed Roles", color=config.EMBED_COLOR)
+        if not allowed:
+            p = config.BOT_PREFIX[0]
+            embed.description = f"No roles set. Add one with `{p}inc allowedroles add <role>`."
+        else:
+            lines = []
+            for rid in allowed:
+                role = ctx.guild.get_role(rid)
+                lines.append(f"• {role.mention} (`{rid}`)" if role else f"• *(Unknown — ID {rid})*")
+            embed.description = "\n".join(lines)
+            embed.set_footer(text=f"{len(allowed)} role{'s' if len(allowed) != 1 else ''} allowed")
+        await ctx.send(embed=embed, reference=ctx.message, mention_author=False)
+
+    @inc_prefix_allowedroles.command(name="add")
+    @commands.has_permissions(manage_guild=True)
+    async def inc_prefix_allowedroles_add(self, ctx: commands.Context, *, raw: str):
+        """
+        Add one or more roles (by mention or ID) to the allowed list.
+        Usage:  inc allowedroles add @Role1 @Role2
+                inc allowedroles add 123456789
+        """
+        # Collect role IDs from mentions and raw IDs
+        allowed = await _get_allowed_roles(self.db, ctx.guild.id)
+        added, skipped = [], []
+
+        candidates = [r.id for r in ctx.message.role_mentions]
+        if not candidates:
+            for token in raw.split():
+                token = token.strip("<@&>")
+                if token.isdigit():
+                    candidates.append(int(token))
+
+        if not candidates:
+            embed = discord.Embed(
+                description="❌ No valid roles found. Mention a role or provide a role ID.",
+                color=config.EMBED_COLOR
+            )
+            return await ctx.send(embed=embed, reference=ctx.message, mention_author=False)
+
+        for rid in candidates:
+            role = ctx.guild.get_role(rid)
+            if not role:
+                skipped.append(f"❌ `{rid}` — role not found")
+            elif rid in allowed:
+                skipped.append(f"⚠️ {role.mention} — already allowed")
+            else:
+                allowed.append(rid)
+                added.append(f"✅ {role.mention}")
+
+        await _set_allowed_roles(self.db, ctx.guild.id, allowed)
+
+        parts = []
+        if added:
+            parts.append("**Added:**\n" + "\n".join(added))
+        if skipped:
+            parts.append("**Skipped:**\n" + "\n".join(skipped))
+        embed = discord.Embed(
+            description="\n\n".join(parts) if parts else "Nothing changed.",
+            color=config.EMBED_COLOR
+        )
+        await ctx.send(embed=embed, reference=ctx.message, mention_author=False)
+
+    @inc_prefix_allowedroles.command(name="remove")
+    @commands.has_permissions(manage_guild=True)
+    async def inc_prefix_allowedroles_remove(self, ctx: commands.Context, *, raw: str):
+        """
+        Remove one or more roles from the allowed list.
+        Usage:  inc allowedroles remove @Role
+                inc allowedroles remove 123456789
+        """
+        allowed = await _get_allowed_roles(self.db, ctx.guild.id)
+        removed, skipped = [], []
+
+        candidates = [r.id for r in ctx.message.role_mentions]
+        if not candidates:
+            for token in raw.split():
+                token = token.strip("<@&>")
+                if token.isdigit():
+                    candidates.append(int(token))
+
+        if not candidates:
+            embed = discord.Embed(
+                description="❌ No valid roles found. Mention a role or provide a role ID.",
+                color=config.EMBED_COLOR
+            )
+            return await ctx.send(embed=embed, reference=ctx.message, mention_author=False)
+
+        for rid in candidates:
+            role = ctx.guild.get_role(rid)
+            name = role.mention if role else f"`{rid}`"
+            if rid not in allowed:
+                skipped.append(f"⚠️ {name} — not in allowed list")
+            else:
+                allowed.remove(rid)
+                removed.append(f"🗑️ {name}")
+
+        await _set_allowed_roles(self.db, ctx.guild.id, allowed)
+
+        parts = []
+        if removed:
+            parts.append("**Removed:**\n" + "\n".join(removed))
+        if skipped:
+            parts.append("**Skipped:**\n" + "\n".join(skipped))
+        embed = discord.Embed(
+            description="\n\n".join(parts) if parts else "Nothing changed.",
+            color=config.EMBED_COLOR
+        )
+        await ctx.send(embed=embed, reference=ctx.message, mention_author=False)
+
+    @inc_prefix_allowedroles.command(name="clear")
+    @commands.has_permissions(manage_guild=True)
+    async def inc_prefix_allowedroles_clear(self, ctx: commands.Context):
+        """Remove all roles from the allowed list."""
+        allowed = await _get_allowed_roles(self.db, ctx.guild.id)
+        count = len(allowed)
+        await _set_allowed_roles(self.db, ctx.guild.id, [])
+        embed = discord.Embed(
+            description=f"🗑️ Cleared all **{count}** allowed role{'s' if count != 1 else ''}. Nobody can use pause/resume until new roles are added.",
+            color=config.EMBED_COLOR
+        )
+        await ctx.send(embed=embed, reference=ctx.message, mention_author=False)
+
     # ── pause  (alias: p) ────────────────────
 
     @inc_prefix.command(name="pause", aliases=["p"])
-    @commands.has_permissions(manage_channels=True)
+    @incense_control_check()
     async def inc_prefix_pause(self, ctx: commands.Context, target: str = None):
         """
         Pause incense for this channel, or all monitored categories.
@@ -958,7 +1135,7 @@ class Incense(commands.Cog):
     # ── resume  (alias: r) ───────────────────
 
     @inc_prefix.command(name="resume", aliases=["r"])
-    @commands.has_permissions(manage_channels=True)
+    @incense_control_check()
     async def inc_prefix_resume(self, ctx: commands.Context, target: str = None):
         """
         Resume incense for this channel, or all channels.
@@ -1084,7 +1261,7 @@ class Incense(commands.Cog):
             inline=False
         )
         embed.add_field(
-            name="⏸️ Pause  *(Manage Channels)*",
+            name="⏸️ Pause  *(IncenseControl role)*",
             value=(
                 f"`{p}inc pause` / `{p}inc p` — Pause **this** channel\n"
                 f"`{p}inc pause all` / `{p}inc p all` — Pause ALL monitored categories\n"
@@ -1093,7 +1270,7 @@ class Incense(commands.Cog):
             inline=False
         )
         embed.add_field(
-            name="▶️ Resume  *(Manage Channels)*",
+            name="▶️ Resume  *(IncenseControl role)*",
             value=(
                 f"`{p}inc resume` / `{p}inc r` — Resume **this** channel\n"
                 f"`{p}inc resume all` / `{p}inc r all` — Resume ALL paused channels\n"
