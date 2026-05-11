@@ -404,11 +404,20 @@ class Incense(commands.Cog):
         await _deny_poketwo_in_channel(channel)
 
     async def _resume_channel(self, channel: discord.TextChannel):
-        """Resume a single channel by syncing it to its category."""
+        """Resume a single channel by clearing Poketwo's overwrite, then syncing to category."""
         paused = await _get_paused_channels(self.db, channel.guild.id)
         if channel.id in paused:
             paused.remove(channel.id)
             await _set_paused_channels(self.db, channel.guild.id, paused)
+        poketwo = await _get_poketwo(channel.guild)
+        if poketwo is not None:
+            overwrite = channel.overwrites_for(poketwo)
+            overwrite.send_messages = None
+            overwrite.view_channel = None
+            if overwrite.is_empty():
+                await channel.set_permissions(poketwo, overwrite=None)
+            else:
+                await channel.set_permissions(poketwo, overwrite=overwrite)
         await channel.edit(sync_permissions=True)
 
     def _bot_mention(self) -> str:
