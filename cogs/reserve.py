@@ -107,7 +107,7 @@ def build_reserve_list_embeds(
     for uid, pokes in pairs:
         count = len(pokes)
         summary_lines.append(f"<@{uid}> — {count}")
-
+    
     summary_text = "\n".join(summary_lines)
 
     # Build lines: "## <@uid>" header + "• pokemon" entries
@@ -129,7 +129,7 @@ def build_reserve_list_embeds(
             content = f"**📊 Reserve Count**\n{summary_text}\n\n─────────────\n" + "\n".join(lines) if lines else summary_text
         else:
             content = "\n".join(lines) if lines else "—"
-
+        
         embed = discord.Embed(
             title=f"📋 Reserve List — {guild_name}",
             description=content,
@@ -368,22 +368,50 @@ class Reserve(commands.Cog):
             await ctx.reply(resp, mention_author=False)
 
         elif subtype in ("cat", "category"):
-            pokes, source = await self._resolve_category_pokemon(
-                ctx.guild.id, pokemon_input.strip()
-            )
-            if not pokes:
+            # Split by comma to handle multiple categories
+            cat_names = [c.strip() for c in pokemon_input.split(",") if c.strip()]
+            
+            if not cat_names:
                 await ctx.reply(
-                    f"❌ No category found for `{pokemon_input.strip()}` in this server. "
-                    f"Admins can add built-in categories with `p!cat defaults`.",
+                    f"❌ Please provide at least one category name.",
                     mention_author=False,
                 )
                 return
-
-            await self.db.add_pokemon_to_reserve(user.id, ctx.guild.id, pokes)
-            await ctx.reply(
-                f"✅ Added {len(pokes)} Pokémon from {source} to {user.mention}'s reserve.",
-                mention_author=False,
-            )
+            
+            all_pokes = []
+            all_sources = []
+            not_found = []
+            
+            for cat_name in cat_names:
+                pokes, source = await self._resolve_category_pokemon(
+                    ctx.guild.id, cat_name
+                )
+                if pokes:
+                    all_pokes.extend(pokes)
+                    all_sources.append(source)
+                else:
+                    not_found.append(cat_name)
+            
+            if not all_pokes:
+                await ctx.reply(
+                    f"❌ No categories found: {', '.join(not_found)}\n"
+                    f"Admins can add built-in categories with `{ctx.prefix}cat defaults`.",
+                    mention_author=False,
+                )
+                return
+            
+            # Remove duplicates while preserving order
+            all_pokes = list(dict.fromkeys(all_pokes))
+            
+            await self.db.add_pokemon_to_reserve(user.id, ctx.guild.id, all_pokes)
+            
+            resp = f"✅ Added {len(all_pokes)} Pokémon from {len(all_sources)} categor{'y' if len(all_sources) == 1 else 'ies'} to {user.mention}'s reserve"
+            if all_sources:
+                resp += f": {', '.join(all_sources)}"
+            if not_found:
+                resp += f"\n⚠️ Not found: {', '.join(not_found)}"
+            
+            await ctx.reply(resp, mention_author=False)
         else:
             await ctx.reply(
                 f"❌ Unknown subtype `{subtype}`. Use `pokemon` or `cat`.",
@@ -429,11 +457,11 @@ class Reserve(commands.Cog):
         # Try to parse if there's a user mention in pokemon_input
         target_user = ctx.author  # Default to command author
         target_pokemon_input = pokemon_input
-
+        
         # Check if first part of pokemon_input is a user mention or ID
         parts = pokemon_input.split(None, 1)  # Split on first space
         first_part = parts[0]
-
+        
         # Check if it looks like a user mention or ID
         if first_part.startswith("<@") or (first_part.lstrip("<@!>").rstrip(">").isdigit()):
             # Might be a user mention/ID
@@ -490,22 +518,50 @@ class Reserve(commands.Cog):
             await ctx.reply(resp, mention_author=False)
 
         elif subtype in ("cat", "category"):
-            pokes, source = await self._resolve_category_pokemon(
-                ctx.guild.id, target_pokemon_input.strip()
-            )
-            if not pokes:
+            # Split by comma to handle multiple categories
+            cat_names = [c.strip() for c in target_pokemon_input.split(",") if c.strip()]
+            
+            if not cat_names:
                 await ctx.reply(
-                    f"❌ No category found for `{target_pokemon_input.strip()}` in this server. "
-                    f"Admins can add built-in categories with `p!cat defaults`.",
+                    f"❌ Please provide at least one category name.",
                     mention_author=False,
                 )
                 return
-
-            await self.db.remove_pokemon_from_reserve(target_user.id, ctx.guild.id, pokes)
-            await ctx.reply(
-                f"✅ Removed {len(pokes)} Pokémon from {source} from {target_user.mention}'s reserve.",
-                mention_author=False,
-            )
+            
+            all_pokes = []
+            all_sources = []
+            not_found = []
+            
+            for cat_name in cat_names:
+                pokes, source = await self._resolve_category_pokemon(
+                    ctx.guild.id, cat_name
+                )
+                if pokes:
+                    all_pokes.extend(pokes)
+                    all_sources.append(source)
+                else:
+                    not_found.append(cat_name)
+            
+            if not all_pokes:
+                await ctx.reply(
+                    f"❌ No categories found: {', '.join(not_found)}\n"
+                    f"Admins can add built-in categories with `{ctx.prefix}cat defaults`.",
+                    mention_author=False,
+                )
+                return
+            
+            # Remove duplicates while preserving order
+            all_pokes = list(dict.fromkeys(all_pokes))
+            
+            await self.db.remove_pokemon_from_reserve(target_user.id, ctx.guild.id, all_pokes)
+            
+            resp = f"✅ Removed {len(all_pokes)} Pokémon from {len(all_sources)} categor{'y' if len(all_sources) == 1 else 'ies'} from {target_user.mention}'s reserve"
+            if all_sources:
+                resp += f": {', '.join(all_sources)}"
+            if not_found:
+                resp += f"\n⚠️ Not found: {', '.join(not_found)}"
+            
+            await ctx.reply(resp, mention_author=False)
         else:
             await ctx.reply(
                 f"❌ Unknown subtype `{subtype}`. Use `pokemon|poke|p` or `cat|category`.",
@@ -559,7 +615,7 @@ class Reserve(commands.Cog):
                     mention_author=False,
                 )
                 return
-
+            
             count = await self.db.clear_all_reserves(ctx.guild.id)
             await ctx.reply(
                 f"✅ Cleared all reserves in **{ctx.guild.name}** ({count} user entries removed).",
@@ -575,7 +631,7 @@ class Reserve(commands.Cog):
                 )
                 return
             uid = int(raw)
-
+            
             # If user mentions themselves, allow it without permission
             if uid == ctx.author.id:
                 cleared = await self.db.clear_user_reserve(uid, ctx.guild.id)
@@ -597,7 +653,7 @@ class Reserve(commands.Cog):
                         mention_author=False,
                     )
                     return
-
+                
                 cleared = await self.db.clear_user_reserve(uid, ctx.guild.id)
                 if cleared:
                     await ctx.reply(
