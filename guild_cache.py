@@ -76,6 +76,8 @@ class GuildCache:
     TTL_COLLECTORS = 20   # collections
     TTL_TYPE_RGN   = 60   # type/region pingers (rarely change mid-session)
     TTL_RARE       = 60   # rare collectors
+    TTL_RESERVES   = 20   # reserves (can change during session)
+    TTL_RESERVE_ROLES = 60  # reserve allowed roles (rarely change)
 
     def __init__(self, db):
         self._db = db
@@ -95,6 +97,10 @@ class GuildCache:
 
         # Per-guild asyncio locks to avoid thundering-herd on simultaneous spawns
         self._guild_locks: dict = {}
+
+        # Reserves: {guild_id: _TTLEntry}  value = list of {user_id, pokemon:[...]}
+        self._reserves:      dict = {}
+        self._reserve_roles: dict = {}
 
     def _guild_lock(self, guild_id: int) -> asyncio.Lock:
         if guild_id not in self._guild_locks:
@@ -248,6 +254,69 @@ class GuildCache:
         to_del = [k for k in self._region_pingers if k[0] == guild_id]
         for k in to_del:
             del self._region_pingers[k]
+
+    # -----------------------------------------------------------------------
+    # Reserves  (all docs for a guild cached together)
+    # -----------------------------------------------------------------------
+    async def _get_raw_reserves(self, guild_id: int) -> list:
+        entry = self._reserves.get(guild_id)
+        if entry and entry.is_valid():
+            return entry.value
+
+        async with self._guild_lock(guild_id):
+            entry = self._reserves.get(guild_id)
+            if entry and entry.is_valid():
+                return entry.value
+            raw = await self._db.get_all_reserves(guild_id)
+            self._reserves[guild_id] = _TTLEntry(raw, self.TTL_RESERVES)
+            return raw
+
+    async def get_reserve_holders(self, guild_id: int, pokemon_names: list, afk_set: set) -> list:
+        """Return user_ids who reserved any of the given pokemon (excluding AFK)."""
+        raw = await self._get_raw_reserves(guild_id)
+        names_set = set(pokemon_names)
+        result = []
+        seen = set()
+        for doc in raw:
+            uid = doc['user_id']
+            if uid in seen or uid in afk_set:
+                continue
+            reserved = doc.get('pokemon', [])
+            if any(p in names_set for p in reserved):
+                result.append(uid)
+                seen.add(uid)
+        return result
+
+    async def is_pokemon_reserved(self, guild_id: int, pokemon_names: list) -> bool:
+        """Return True if any user has reserved any of these pokemon names in this guild."""
+        raw = await self._get_raw_reserves(guild_id)
+        names_set = set(pokemon_names)
+        for doc in raw:
+            if any(p in names_set for p in doc.get('pokemon', [])):
+                return True
+        return False
+
+    def invalidate_reserves(self, guild_id: int):
+        self._reserves.pop(guild_id, None)
+
+    # -----------------------------------------------------------------------
+    # Reserve allowed roles
+    # -----------------------------------------------------------------------
+    async def get_reserve_allowed_roles(self, guild_id: int) -> list:
+        entry = self._reserve_roles.get(guild_id)
+        if entry and entry.is_valid():
+            return entry.value
+
+        async with self._guild_lock(guild_id):
+            entry = self._reserve_roles.get(guild_id)
+            if entry and entry.is_valid():
+                return entry.value
+            roles = await self._db.get_reserve_allowed_roles(guild_id)
+            self._reserve_roles[guild_id] = _TTLEntry(roles, self.TTL_RESERVE_ROLES)
+            return roles
+
+    def invalidate_reserve_roles(self, guild_id: int):
+        self._reserve_roles.pop(guild_id, None)
 
     # -----------------------------------------------------------------------
     # Warm-up — call on !loadmodel
