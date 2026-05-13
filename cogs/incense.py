@@ -804,7 +804,7 @@ class Incense(commands.Cog):
     #  Prefix commands  (p!inc / p!incense)
     # ══════════════════════════════════════════
 
-    @commands.group(name="inc", aliases=["incense"], invoke_without_command=True)
+    @commands.group(name="inc", aliases=["incense"], invoke_without_command=True, case_insensitive=True)
     async def inc_prefix(self, ctx: commands.Context):
         """Incense management. Use `inc help` for details."""
         await ctx.invoke(self.inc_prefix_help)
@@ -826,7 +826,7 @@ class Incense(commands.Cog):
 
     # ── cat ──────────────────────────────────
 
-    @inc_prefix.group(name="cat", invoke_without_command=True)
+    @inc_prefix.group(name="cat", invoke_without_command=True, case_insensitive=True)
     async def inc_prefix_cat(self, ctx: commands.Context):
         p = config.BOT_PREFIX[0]
         embed = discord.Embed(
@@ -948,7 +948,7 @@ class Incense(commands.Cog):
 
     # ── allowedroles ─────────────────────────
 
-    @inc_prefix.group(name="allowedroles", aliases=["ar"], invoke_without_command=True)
+    @inc_prefix.group(name="allowedroles", aliases=["ar"], invoke_without_command=True, case_insensitive=True)
     @commands.has_permissions(manage_guild=True)
     async def inc_prefix_allowedroles(self, ctx: commands.Context):
         """List all roles allowed to use pause/resume. Subcommands: add, remove, clear."""
