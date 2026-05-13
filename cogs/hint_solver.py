@@ -120,6 +120,12 @@ class HintSolver(commands.Cog):
         if not content:
             return
 
+        # Check if hint solver is enabled for this guild
+        if message.guild:
+            enabled = await self.bot.db.get_hint_solver(message.guild.id)
+            if not enabled:
+                return
+
         hint = extract_hint(content)
         if hint is None:
             return
