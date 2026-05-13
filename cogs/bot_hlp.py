@@ -399,6 +399,7 @@ class Help(commands.Cog):
                     f"• `{prefix}toggle best_name` — Enable/disable the Shortest Name line in predictions\n"
                     f"• `{prefix}toggle only_pings` — Enable/disable only-pings mode\n\n"
                     f"• `{prefix}toggle catch_command` — Enable/disable catch_command mode\n\n"
+                     f"• `{prefix}toggle hint_solver` — Enable/disable hint solver \n\n"
                     f"**`only_pings`:** When enabled, predictions are only sent when there are active collectors, hunters, or ping roles. "
                     f"Also accessible via `{prefix}only-pings true/false`"
                 ),
