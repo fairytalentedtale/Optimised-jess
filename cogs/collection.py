@@ -362,7 +362,7 @@ class Collection(commands.Cog):
             other_collection = await self.db.get_user_collection(target_user_id, ctx.guild.id)
             if not other_collection:
                 await ctx.reply(
-                    f"<@{target_user_id}> has an empty collection in this server — nothing to remove.",
+                    f"<@{target_user_id}> has no Pokémon in their collection for this server, so nothing was removed from yours.",
                     mention_author=False,
                     allowed_mentions=NO_MENTIONS,
                 )
@@ -437,15 +437,26 @@ class Collection(commands.Cog):
             sr_label = ""
             if sr_values:
                 sr_label = f" (SR: {', '.join(f'1/{s}' for s in sr_values)})"
-            user_label = f" from <@{target_user_id}>'s collection" if target_user_id else ""
-            if len(removed_pokemon) <= MAX_DISPLAY_ITEMS:
-                response = f"✅ Removed {len(removed_pokemon)} Pokémon{user_label}{sr_label}: {', '.join(removed_pokemon)}"
+            if target_user_id:
+                user_prefix = f"✅ Removed {len(removed_pokemon)}"
+                user_prefix += f" Pokémon{sr_label} that <@{target_user_id}> has"
+                if len(removed_pokemon) <= MAX_DISPLAY_ITEMS:
+                    response = f"{user_prefix} from your collection: {', '.join(removed_pokemon)}"
+                else:
+                    response = (
+                        f"{user_prefix} from your collection: "
+                        f"{', '.join(removed_pokemon[:MAX_DISPLAY_ITEMS])} "
+                        f"and {len(removed_pokemon) - MAX_DISPLAY_ITEMS} more…"
+                    )
             else:
-                response = (
-                    f"✅ Removed {len(removed_pokemon)} Pokémon{user_label}{sr_label}: "
-                    f"{', '.join(removed_pokemon[:MAX_DISPLAY_ITEMS])} "
-                    f"and {len(removed_pokemon) - MAX_DISPLAY_ITEMS} more…"
-                )
+                if len(removed_pokemon) <= MAX_DISPLAY_ITEMS:
+                    response = f"✅ Removed {len(removed_pokemon)} Pokémon{sr_label}: {', '.join(removed_pokemon)}"
+                else:
+                    response = (
+                        f"✅ Removed {len(removed_pokemon)} Pokémon{sr_label}: "
+                        f"{', '.join(removed_pokemon[:MAX_DISPLAY_ITEMS])} "
+                        f"and {len(removed_pokemon) - MAX_DISPLAY_ITEMS} more…"
+                    )
 
             if unknown_sr:
                 response += f"\n⚠️ Unknown spawn rates (no matches): {', '.join(f'1/{s}' for s in unknown_sr)}"
@@ -455,12 +466,11 @@ class Collection(commands.Cog):
             await ctx.reply(response, mention_author=False, allowed_mentions=NO_MENTIONS)
         else:
             sr_label = f" with SR {', '.join(f'1/{s}' for s in sr_values)}" if sr_values else ""
-            user_label = f" from <@{target_user_id}>'s collection" if target_user_id else ""
-            await ctx.reply(
-                f"No Pokémon were removed{user_label}{sr_label} (they might not be in your collection)",
-                mention_author=False,
-                allowed_mentions=NO_MENTIONS,
-            )
+            if target_user_id:
+                msg = f"None of <@{target_user_id}>'s Pokémon{sr_label} were found in your collection — nothing was removed."
+            else:
+                msg = f"No Pokémon{sr_label} were removed (they might not be in your collection)."
+            await ctx.reply(msg, mention_author=False, allowed_mentions=NO_MENTIONS)
 
     @collection_group.command(name="clear")
     async def collection_clear(self, ctx):
