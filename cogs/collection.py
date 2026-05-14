@@ -16,6 +16,8 @@ from utils import (
 )
 from config import EMBED_COLOR, ITEMS_PER_PAGE, MAX_DISPLAY_ITEMS
 
+NO_MENTIONS = discord.AllowedMentions.none()
+
 SR_DATA_PATH = "data/spawnrate.csv"
 
 def load_spawnrate_data() -> Dict[int, List[str]]:
@@ -359,10 +361,10 @@ class Collection(commands.Cog):
                 return
             other_collection = await self.db.get_user_collection(target_user_id, ctx.guild.id)
             if not other_collection:
-                user_display = f"<@{target_user_id}>"
                 await ctx.reply(
-                    f"{user_display} has an empty collection in this server — nothing to remove.",
-                    mention_author=False
+                    f"<@{target_user_id}> has an empty collection in this server — nothing to remove.",
+                    mention_author=False,
+                    allowed_mentions=NO_MENTIONS,
                 )
                 return
             removed_pokemon.extend(other_collection)
@@ -450,13 +452,14 @@ class Collection(commands.Cog):
             if not_found_pokemon:
                 response += f"\n❌ Invalid names: {', '.join(not_found_pokemon[:30])}"
 
-            await ctx.reply(response, mention_author=False)
+            await ctx.reply(response, mention_author=False, allowed_mentions=NO_MENTIONS)
         else:
             sr_label = f" with SR {', '.join(f'1/{s}' for s in sr_values)}" if sr_values else ""
             user_label = f" from <@{target_user_id}>'s collection" if target_user_id else ""
             await ctx.reply(
                 f"No Pokémon were removed{user_label}{sr_label} (they might not be in your collection)",
-                mention_author=False
+                mention_author=False,
+                allowed_mentions=NO_MENTIONS,
             )
 
     @collection_group.command(name="clear")
