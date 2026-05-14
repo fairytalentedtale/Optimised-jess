@@ -143,18 +143,20 @@ class Help(commands.Cog):
             )
 
             embed.add_field(
-                name=f"`{prefix}cl remove <pokemon | --sr <rate>>`",
+                name=f"`{prefix}cl remove <pokemon | --sr <rate> | --user <@user>>`",
                 value=(
-                    "Remove Pokemon from your collection\n"
+                    "Remove Pokémon from your collection\n"
                     f"**Aliases:** `{prefix}collection remove`\n"
                     f"**Examples:**\n"
                     f"• `{prefix}cl remove Pikachu`\n"
                     f"• `{prefix}cl remove Pikachu, Charizard`\n"
                     f"• `{prefix}cl remove Furfrou all` (removes all Furfrou variants)\n"
                     f"• `{prefix}cl remove all Furfrou` (same as above)\n"
-                    f"• `{prefix}cl remove --sr 899` (removes **all** Pokémon with spawn rate 1/899)\n"
+                    f"• `{prefix}cl remove --sr 899` (removes all Pokémon with spawn rate 1/899)\n"
                     f"• `{prefix}cl remove --sr 225 --sr 337` (multiple rates at once)\n"
-                    f"• `{prefix}cl remove Pikachu, --sr 899` (mix names and rates)"
+                    f"• `{prefix}cl remove Pikachu, --sr 899` (mix names and rates)\n"
+                    f"• `{prefix}cl remove --user @someone` (removes everything **they** have from **your** collection)\n"
+                    f"• `{prefix}cl remove --user @someone --sr 899` (flags can be combined)"
                 ),
                 inline=False
             )
@@ -172,7 +174,7 @@ class Help(commands.Cog):
                 name=f"`{prefix}cl raw [--sr <rate>]`",
                 value=(
                     "View your collection as raw text, **grouped by spawn rate tier** — each tier on its own line, "
-                    "comma-separated with a trailing comma, blank line between tiers. Sends as a `.txt` file if large\n"
+                    "comma-separated with a trailing comma, blank line between tiers. Paginates with ◀️ ▶️ buttons if too long\n"
                     f"**Aliases:** `{prefix}collection raw`\n"
                     f"**Examples:**\n"
                     f"• `{prefix}cl raw` — full collection grouped by SR tier\n"
@@ -988,7 +990,7 @@ class Help(commands.Cog):
             embed.add_field(
                 name="📦 Collection",
                 value=(
-                    f"`{prefix}cl add` • `{prefix}cl remove [--sr <rate>]` • `{prefix}cl list`\n"
+                    f"`{prefix}cl add` • `{prefix}cl remove [--sr <rate>] [--user @u]` • `{prefix}cl list`\n"
                     f"`{prefix}cl raw [--sr <rate>]` • `{prefix}cl clear`"
                 ),
                 inline=False
