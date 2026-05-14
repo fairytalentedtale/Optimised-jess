@@ -1,10 +1,12 @@
 """Collection management commands"""
+import csv
 import discord
 import math
 import asyncio
+import re
 from discord import app_commands
 from discord.ext import commands
-from typing import List
+from typing import List, Dict
 from utils import (
     load_pokemon_data,
     find_pokemon_by_name_flexible,
@@ -14,6 +16,35 @@ from utils import (
     create_text_file
 )
 from config import EMBED_COLOR, ITEMS_PER_PAGE, MAX_DISPLAY_ITEMS
+
+SR_DATA_PATH = "data/spawnrate.csv"
+
+def load_spawnrate_data() -> Dict[int, List[str]]:
+    """Load spawnrate.csv and return a dict of {denominator: [pokemon_names]}.
+
+    The CSV has columns: Dex, Pokemon, Chance, Chance percentage
+    The Chance column is formatted as '1/225', '1/337', etc.
+    """
+    sr_map: Dict[int, List[str]] = {}
+    try:
+        with open(SR_DATA_PATH, newline='', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                chance = row.get('Chance', '').strip()
+                name = row.get('Pokemon', '').strip()
+                if not chance or not name:
+                    continue
+                # Parse denominator from '1/225'
+                parts = chance.split('/')
+                if len(parts) == 2:
+                    try:
+                        denom = int(parts[1])
+                        sr_map.setdefault(denom, []).append(name)
+                    except ValueError:
+                        pass
+    except Exception as e:
+        print(f"[DATA] Could not load spawnrate.csv: {e}")
+    return sr_map
 
 class CollectionPaginationView(discord.ui.View):
     def __init__(self, user_id, guild_id, current_page, total_pages, cog):
@@ -63,6 +94,7 @@ class Collection(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.pokemon_data = load_pokemon_data()
+        self.spawnrate_data = load_spawnrate_data()
 
     @property
     def db(self):
@@ -226,68 +258,112 @@ class Collection(commands.Cog):
         Examples:
             p!cl remove Pikachu
             p!cl remove Pikachu, Charizard
-            p!cl remove Furfrou all  (removes all Furfrou variants)
-            p!cl remove all Furfrou  (same as above)
+            p!cl remove Furfrou all          (removes all Furfrou variants)
+            p!cl remove all Furfrou          (same as above)
+            p!cl remove --sr 899             (removes all Pokemon with spawn rate 1/899)
+            p!cl remove --sr 225 --sr 337    (multiple spawn rates at once)
+            p!cl remove Pikachu, --sr 899    (mix of names and spawn rates)
         """
-        names_list = [name.strip() for name in pokemon_names.split(",") if name.strip()]
-
-        if not names_list:
-            await ctx.reply("No valid Pokemon names provided", mention_author=False)
-            return
+        # ── 1. Extract --sr flags ──────────────────────────────────────────
+        sr_values = [int(m) for m in re.findall(r'--sr\s+(\d+)', pokemon_names)]
+        # Strip all --sr … tokens from the input so the rest is plain names
+        cleaned_input = re.sub(r'--sr\s+\d+', '', pokemon_names).strip().strip(',').strip()
 
         removed_pokemon = []
         not_found_pokemon = []
+        unknown_sr = []
 
-        for name in names_list:
-            # Normalize: support both "furfrou all" and "all furfrou"
-            name_lower = name.lower()
-            is_all = name_lower.endswith(" all") or name_lower.startswith("all ")
-
-            if is_all:
-                # Strip "all" from either end
-                if name_lower.startswith("all "):
-                    base_name = name[4:].strip()
-                else:
-                    base_name = name[:-4].strip()
-
-                variants = get_pokemon_with_variants(base_name, self.pokemon_data)
-
-                if variants:
-                    removed_pokemon.extend(variants)
-                else:
-                    not_found_pokemon.append(name)
+        # ── 2. Resolve --sr values → Pokemon names ─────────────────────────
+        for sr in sr_values:
+            sr_names = self.spawnrate_data.get(sr)
+            if sr_names:
+                removed_pokemon.extend(sr_names)
             else:
-                pokemon = find_pokemon_by_name_flexible(name, self.pokemon_data)
+                unknown_sr.append(sr)
 
-                if pokemon and pokemon.get('name'):
-                    removed_pokemon.append(pokemon['name'])
+        # ── 3. Resolve explicit Pokemon names (if any remain after stripping) ─
+        if cleaned_input:
+            names_list = [name.strip() for name in cleaned_input.split(",") if name.strip()]
+
+            for name in names_list:
+                name_lower = name.lower()
+                is_all = name_lower.endswith(" all") or name_lower.startswith("all ")
+
+                if is_all:
+                    if name_lower.startswith("all "):
+                        base_name = name[4:].strip()
+                    else:
+                        base_name = name[:-4].strip()
+
+                    variants = get_pokemon_with_variants(base_name, self.pokemon_data)
+                    if variants:
+                        removed_pokemon.extend(variants)
+                    else:
+                        not_found_pokemon.append(name)
                 else:
-                    not_found_pokemon.append(name)
+                    pokemon = find_pokemon_by_name_flexible(name, self.pokemon_data)
+                    if pokemon and pokemon.get('name'):
+                        removed_pokemon.append(pokemon['name'])
+                    else:
+                        not_found_pokemon.append(name)
 
+        # ── 4. Validate we have something to remove ────────────────────────
         if not removed_pokemon:
-            error_msg = "No valid Pokemon names found"
+            parts = []
+            if not sr_values and not cleaned_input:
+                parts.append("No valid Pokemon names or `--sr` flags provided")
+            else:
+                parts.append("No valid Pokemon found to remove")
+            if unknown_sr:
+                parts.append(f"Unknown spawn rates: {', '.join(f'1/{s}' for s in unknown_sr)}")
             if not_found_pokemon:
-                error_msg += f". Invalid: {', '.join(not_found_pokemon[:30])}"
-            await ctx.reply(error_msg, mention_author=False)
+                parts.append(f"Invalid names: {', '.join(not_found_pokemon[:30])}")
+            await ctx.reply("\n".join(parts), mention_author=False)
             return
 
+        # Deduplicate while preserving order
+        seen = set()
+        unique_removed = []
+        for p in removed_pokemon:
+            key = p.lower()
+            if key not in seen:
+                seen.add(key)
+                unique_removed.append(p)
+        removed_pokemon = unique_removed
+
+        # ── 5. Remove from DB ──────────────────────────────────────────────
         modified = await self.db.remove_pokemon_from_collection(
             ctx.author.id, ctx.guild.id, removed_pokemon
         )
 
+        # ── 6. Build response ──────────────────────────────────────────────
         if modified:
+            # Summary header
+            sr_label = ""
+            if sr_values:
+                sr_label = f" (SR: {', '.join(f'1/{s}' for s in sr_values)})"
             if len(removed_pokemon) <= MAX_DISPLAY_ITEMS:
-                response = f"✅ Removed {len(removed_pokemon)} Pokemon: {', '.join(removed_pokemon)}"
+                response = f"✅ Removed {len(removed_pokemon)} Pokémon{sr_label}: {', '.join(removed_pokemon)}"
             else:
-                response = f"✅ Removed {len(removed_pokemon)} Pokemon: {', '.join(removed_pokemon[:MAX_DISPLAY_ITEMS])} and {len(removed_pokemon) - MAX_DISPLAY_ITEMS} more..."
+                response = (
+                    f"✅ Removed {len(removed_pokemon)} Pokémon{sr_label}: "
+                    f"{', '.join(removed_pokemon[:MAX_DISPLAY_ITEMS])} "
+                    f"and {len(removed_pokemon) - MAX_DISPLAY_ITEMS} more…"
+                )
 
+            if unknown_sr:
+                response += f"\n⚠️ Unknown spawn rates (no matches): {', '.join(f'1/{s}' for s in unknown_sr)}"
             if not_found_pokemon:
-                if len(not_found_pokemon) <= 30:
-                    response += f"\n❌ Invalid: {', '.join(not_found_pokemon)}"
+                response += f"\n❌ Invalid names: {', '.join(not_found_pokemon[:30])}"
 
             await ctx.reply(response, mention_author=False)
         else:
-            await ctx.reply("No Pokemon were removed (they might not be in your collection)", mention_author=False)
+            # Nothing was actually removed from the DB
+            sr_label = f" with SR {', '.join(f'1/{s}' for s in sr_values)}" if sr_values else ""
+            await ctx.reply(
+                f"No Pokémon were removed{sr_label} (they might not be in your collection)",
+                mention_author=False
+            )
 
     @collection_group.command(name="clear")
     async def collection_clear(self, ctx):
@@ -317,11 +393,93 @@ class Collection(commands.Cog):
         else:
             await ctx.reply(embed=embed, mention_author=False)
 
-    @collection_group.command(name="raw")
-    async def collection_raw(self, ctx):
-        """View your collection as raw text (comma-separated)
+    def _format_collection_by_sr(
+        self, collection: List[str], sr_filter: List[int] = None
+    ) -> str:
+        """Format a collection grouped by spawn rate tier.
 
-        If collection is large, sends as a text file.
+        Each tier becomes one line of comma-separated names with a trailing
+        comma.  Tiers are separated by a blank line.  Order within a tier
+        follows the CSV row order.  Pokemon not found in the CSV are placed
+        last in an 'unknown' group (only shown when no sr_filter is active).
+
+        Args:
+            collection:  The user's full collection list.
+            sr_filter:   If provided, only tiers whose denominator is in this
+                         list are included.  e.g. [899] or [225, 337].
+
+        Example output (no filter):
+            Aron, Bramblin, Wurmple,
+
+            Charmander, Squirtle, Bulbasaur,
+
+            Amaura, Zorua, Meowth,
+
+        Example output (sr_filter=[899]):
+            Amaura, Zorua, Meowth,
+        """
+        # Build name->denominator lookup (case-insensitive)
+        name_to_denom: Dict[str, int] = {}
+        for denom, names in self.spawnrate_data.items():
+            for name in names:
+                name_to_denom[name.lower()] = denom
+
+        # Build CSV position map for within-tier ordering
+        csv_position: Dict[str, int] = {}
+        pos = 0
+        for names in self.spawnrate_data.values():
+            for name in names:
+                csv_position[name.lower()] = pos
+                pos += 1
+
+        # Bucket each collection entry by denominator
+        denom_to_entries: Dict[int, List[str]] = {}
+        unknown: List[str] = []
+
+        for name_stored in collection:
+            denom = name_to_denom.get(name_stored.lower())
+            if denom is not None:
+                denom_to_entries.setdefault(denom, []).append(name_stored)
+            else:
+                unknown.append(name_stored)
+
+        # Sort within each tier by CSV row order
+        for denom in denom_to_entries:
+            denom_to_entries[denom].sort(
+                key=lambda n: csv_position.get(n.lower(), 999999)
+            )
+
+        # Sort unknown alphabetically
+        unknown.sort()
+
+        # Determine which tiers to emit
+        filter_set = set(sr_filter) if sr_filter else None
+
+        lines = []
+        for denom in sorted(denom_to_entries.keys()):
+            if filter_set and denom not in filter_set:
+                continue
+            entries = denom_to_entries[denom]
+            lines.append(", ".join(entries) + ",")
+
+        # Only show unknown bucket when not filtering by specific SR
+        if not filter_set and unknown:
+            lines.append(", ".join(unknown) + ",")
+
+        return "\n\n".join(lines)
+
+    @collection_group.command(name="raw")
+    async def collection_raw(self, ctx, *, args: str = ""):
+        """View your collection as raw text, grouped by spawn rate tier.
+
+        Each spawn rate tier is on its own line, names comma-separated with a
+        trailing comma.  Tiers are separated by a blank line.  Sent as a text
+        file when the output is large.
+
+        Examples:
+            p!cl raw
+            p!cl raw --sr 899
+            p!cl raw --sr 225 --sr 337
         """
         collection = await self.db.get_user_collection(ctx.author.id, ctx.guild.id)
 
@@ -329,22 +487,62 @@ class Collection(commands.Cog):
             await ctx.reply("Your collection is empty!", mention_author=False)
             return
 
-        sorted_collection = sorted(collection)
-        text_content = ", ".join(sorted_collection)
+        # Parse --sr flags
+        sr_filter = [int(m) for m in re.findall(r'--sr\s+(\d+)', args)]
 
-        # If content is too long for a message, send as file
-        if len(text_content) > 1900:
+        # Validate requested SRs exist in the CSV
+        unknown_srs = [sr for sr in sr_filter if sr not in self.spawnrate_data]
+        if unknown_srs:
+            await ctx.reply(
+                f"❌ Unknown spawn rate(s): {', '.join(f'1/{s}' for s in unknown_srs)}",
+                mention_author=False
+            )
+            return
+
+        text_content = self._format_collection_by_sr(collection, sr_filter or None)
+        total = len(collection)
+
+        if not text_content:
+            if sr_filter:
+                sr_label = ", ".join(f"1/{s}" for s in sr_filter)
+                await ctx.reply(
+                    f"You have no Pokémon with spawn rate {sr_label} in your collection.",
+                    mention_author=False
+                )
+            else:
+                await ctx.reply("Your collection is empty!", mention_author=False)
+            return
+
+        # Title reflects filter state
+        if sr_filter:
+            sr_label = ", ".join(f"1/{s}" for s in sr_filter)
+            # Count only the matched pokemon
+            matched_names = set()
+            for sr in sr_filter:
+                for name in (self.spawnrate_data.get(sr) or []):
+                    matched_names.add(name.lower())
+            shown = sum(1 for p in collection if p.lower() in matched_names)
+            title = f"📦 Collection — SR {sr_label}"
+            description_prefix = f"**{shown} Pokémon (SR {sr_label}):**\n"
+            file_desc = f"{shown} Pokémon with SR {sr_label}."
+        else:
+            title = "📦 Your Collection"
+            description_prefix = f"**{total} Pokémon:**\n"
+            file_desc = f"Your collection has {total} Pokémon."
+
+        # Send as file if too long, otherwise embed
+        if len(description_prefix) + len(text_content) > 1900:
             file = create_text_file(text_content, f"collection_{ctx.author.id}.txt")
             embed = discord.Embed(
-                title="📦 Your Collection",
-                description=f"Your collection has {len(sorted_collection)} Pokémon. View the attached file for the full list.",
+                title=title,
+                description=file_desc + " View the attached file for the full list.",
                 color=EMBED_COLOR
             )
             await ctx.reply(embed=embed, file=file, mention_author=False)
         else:
             embed = discord.Embed(
-                title="📦 Your Collection",
-                description=f"**{len(sorted_collection)} Pokémon:** {text_content}",
+                title=title,
+                description=description_prefix + text_content,
                 color=EMBED_COLOR
             )
             await ctx.reply(embed=embed, mention_author=False)
@@ -361,7 +559,7 @@ class Collection(commands.Cog):
         await self.collection_add(ctx, pokemon_names=pokemon_names)
 
     @cl_group.command(name="remove", description="Remove Pokémon from your collection")
-    @app_commands.describe(pokemon_names="Pokémon name(s), comma-separated. Append 'all' for all forms e.g. 'Furfrou all'")
+    @app_commands.describe(pokemon_names="Names (comma-sep), 'Furfrou all', or --sr <denom> flags e.g. '--sr 899 --sr 225'")
     async def slash_collection_remove(self, interaction: discord.Interaction, pokemon_names: str):
         ctx = await commands.Context.from_interaction(interaction)
         await self.collection_remove(ctx, pokemon_names=pokemon_names)
@@ -371,10 +569,11 @@ class Collection(commands.Cog):
         ctx = await commands.Context.from_interaction(interaction)
         await self.collection_list(ctx)
 
-    @cl_group.command(name="raw", description="View your collection as raw comma-separated text")
-    async def slash_collection_raw(self, interaction: discord.Interaction):
+    @cl_group.command(name="raw", description="View your collection as raw comma-separated text, grouped by SR")
+    @app_commands.describe(args="Optional --sr flags to filter by spawn rate, e.g. '--sr 899' or '--sr 225 --sr 337'")
+    async def slash_collection_raw(self, interaction: discord.Interaction, args: str = ""):
         ctx = await commands.Context.from_interaction(interaction)
-        await self.collection_raw(ctx)
+        await self.collection_raw(ctx, args=args)
 
     @cl_group.command(name="clear", description="Clear your entire Pokémon collection")
     async def slash_collection_clear(self, interaction: discord.Interaction):
