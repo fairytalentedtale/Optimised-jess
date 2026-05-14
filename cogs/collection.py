@@ -334,17 +334,40 @@ class Collection(commands.Cog):
             p!cl remove --sr 899             (removes all Pokemon with spawn rate 1/899)
             p!cl remove --sr 225 --sr 337    (multiple spawn rates at once)
             p!cl remove Pikachu, --sr 899    (mix of names and spawn rates)
+            p!cl remove --user @someone      (removes everything that user has in their collection)
         """
-        # ── 1. Extract --sr flags ──────────────────────────────────────────
+        # ── 1. Extract --user flag ─────────────────────────────────────────
+        # Accepts a mention (@user), or a raw user ID
+        user_match = re.search(r'--user\s+(?:<@!?(\d+)>|(\d{15,20}))', pokemon_names)
+        target_user_id = None
+        if user_match:
+            target_user_id = int(user_match.group(1) or user_match.group(2))
+            pokemon_names = re.sub(r'--user\s+(?:<@!?\d+>|\d{15,20})', '', pokemon_names).strip().strip(',').strip()
+
+        # ── 2. Extract --sr flags ──────────────────────────────────────────
         sr_values = [int(m) for m in re.findall(r'--sr\s+(\d+)', pokemon_names)]
-        # Strip all --sr … tokens from the input so the rest is plain names
         cleaned_input = re.sub(r'--sr\s+\d+', '', pokemon_names).strip().strip(',').strip()
 
         removed_pokemon = []
         not_found_pokemon = []
         unknown_sr = []
 
-        # ── 2. Resolve --sr values → Pokemon names ─────────────────────────
+        # ── 3. Resolve --user → that user's collection ─────────────────────
+        if target_user_id is not None:
+            if target_user_id == ctx.author.id:
+                await ctx.reply("You can't use `--user` with yourself.", mention_author=False)
+                return
+            other_collection = await self.db.get_user_collection(target_user_id, ctx.guild.id)
+            if not other_collection:
+                user_display = f"<@{target_user_id}>"
+                await ctx.reply(
+                    f"{user_display} has an empty collection in this server — nothing to remove.",
+                    mention_author=False
+                )
+                return
+            removed_pokemon.extend(other_collection)
+
+        # ── 4. Resolve --sr values → Pokemon names ─────────────────────────
         for sr in sr_values:
             sr_names = self.spawnrate_data.get(sr)
             if sr_names:
@@ -352,7 +375,7 @@ class Collection(commands.Cog):
             else:
                 unknown_sr.append(sr)
 
-        # ── 3. Resolve explicit Pokemon names (if any remain after stripping) ─
+        # ── 5. Resolve explicit Pokemon names (if any remain after stripping) ─
         if cleaned_input:
             names_list = [name.strip() for name in cleaned_input.split(",") if name.strip()]
 
@@ -378,11 +401,11 @@ class Collection(commands.Cog):
                     else:
                         not_found_pokemon.append(name)
 
-        # ── 4. Validate we have something to remove ────────────────────────
+        # ── 6. Validate we have something to remove ────────────────────────
         if not removed_pokemon:
             parts = []
-            if not sr_values and not cleaned_input:
-                parts.append("No valid Pokemon names or `--sr` flags provided")
+            if not target_user_id and not sr_values and not cleaned_input:
+                parts.append("No valid Pokemon names, `--sr` flags, or `--user` provided")
             else:
                 parts.append("No valid Pokemon found to remove")
             if unknown_sr:
@@ -402,22 +425,22 @@ class Collection(commands.Cog):
                 unique_removed.append(p)
         removed_pokemon = unique_removed
 
-        # ── 5. Remove from DB ──────────────────────────────────────────────
+        # ── 7. Remove from DB ──────────────────────────────────────────────
         modified = await self.db.remove_pokemon_from_collection(
             ctx.author.id, ctx.guild.id, removed_pokemon
         )
 
-        # ── 6. Build response ──────────────────────────────────────────────
+        # ── 8. Build response ──────────────────────────────────────────────
         if modified:
-            # Summary header
             sr_label = ""
             if sr_values:
                 sr_label = f" (SR: {', '.join(f'1/{s}' for s in sr_values)})"
+            user_label = f" from <@{target_user_id}>'s collection" if target_user_id else ""
             if len(removed_pokemon) <= MAX_DISPLAY_ITEMS:
-                response = f"✅ Removed {len(removed_pokemon)} Pokémon{sr_label}: {', '.join(removed_pokemon)}"
+                response = f"✅ Removed {len(removed_pokemon)} Pokémon{user_label}{sr_label}: {', '.join(removed_pokemon)}"
             else:
                 response = (
-                    f"✅ Removed {len(removed_pokemon)} Pokémon{sr_label}: "
+                    f"✅ Removed {len(removed_pokemon)} Pokémon{user_label}{sr_label}: "
                     f"{', '.join(removed_pokemon[:MAX_DISPLAY_ITEMS])} "
                     f"and {len(removed_pokemon) - MAX_DISPLAY_ITEMS} more…"
                 )
@@ -429,10 +452,10 @@ class Collection(commands.Cog):
 
             await ctx.reply(response, mention_author=False)
         else:
-            # Nothing was actually removed from the DB
             sr_label = f" with SR {', '.join(f'1/{s}' for s in sr_values)}" if sr_values else ""
+            user_label = f" from <@{target_user_id}>'s collection" if target_user_id else ""
             await ctx.reply(
-                f"No Pokémon were removed{sr_label} (they might not be in your collection)",
+                f"No Pokémon were removed{user_label}{sr_label} (they might not be in your collection)",
                 mention_author=False
             )
 
