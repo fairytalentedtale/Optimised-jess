@@ -5,7 +5,7 @@ from discord.ext import commands
 from config import EMBED_COLOR, BOT_PREFIX
 
 class Help(commands.Cog):
-    """Help and information commandss"""
+    """Help and information commandss """
 
     def __init__(self, bot):
         self.bot = bot
