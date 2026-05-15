@@ -24,15 +24,21 @@ BASE_SHINY_RATE = 4096
 SHINY_CHARM_MULTIPLIER = 1.20
 
 
-async def fetch_spawn_rates(force: bool = False) -> Dict[str, dict]:
+async def fetch_spawn_rates(session: aiohttp.ClientSession = None, force: bool = False) -> Dict[str, dict]:
     global _spawn_rate_cache
     if _spawn_rate_cache is not None and not force:
         return _spawn_rate_cache
 
-    async with aiohttp.ClientSession() as session:
+    # Use provided session; fall back to a temporary one only if unavailable
+    if session is not None:
         async with session.get(SPAWN_RATE_CSV_URL) as response:
             response.raise_for_status()
             text = await response.text(encoding="utf-8")
+    else:
+        async with aiohttp.ClientSession() as _tmp_session:
+            async with _tmp_session.get(SPAWN_RATE_CSV_URL) as response:
+                response.raise_for_status()
+                text = await response.text(encoding="utf-8")
 
     reader = csv.DictReader(io.StringIO(text))
     data: Dict[str, dict] = {}
@@ -194,7 +200,7 @@ class SpawnRate(commands.Cog):
         canonical_name = matched["name"] if matched else pokemon.strip()
 
         try:
-            spawn_data = await fetch_spawn_rates()
+            spawn_data = await fetch_spawn_rates(session=self.bot.http_session)
         except Exception as e:
             await interaction.followup.send(f"❌ Failed to fetch spawn rate data: `{e}`")
             return
@@ -232,7 +238,7 @@ class SpawnRate(commands.Cog):
             canonical_name = matched["name"] if matched else pokemon_name.strip()
 
             try:
-                spawn_data = await fetch_spawn_rates()
+                spawn_data = await fetch_spawn_rates(session=self.bot.http_session)
             except Exception as e:
                 await ctx.send(f"❌ Failed to fetch spawn rate data: `{e}`\nPlease try again later.")
                 return
@@ -349,7 +355,7 @@ class SpawnRate(commands.Cog):
         async with ctx.typing():
             try:
                 old_count = len(_spawn_rate_cache) if _spawn_rate_cache else 0
-                data = await fetch_spawn_rates(force=True)
+                data = await fetch_spawn_rates(session=self.bot.http_session, force=True)
                 new_count = len(data)
             except Exception as e:
                 await ctx.send(f"❌ Failed to reload spawn rate data: `{e}`")
