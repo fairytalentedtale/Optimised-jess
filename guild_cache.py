@@ -79,6 +79,10 @@ class GuildCache:
     TTL_RESERVES   = 20   # reserves (can change during session)
     TTL_RESERVE_ROLES = 60  # reserve allowed roles (rarely change)
 
+    # Hard cap per high-cardinality dict — prevents unbounded growth during
+    # massive incense sessions with many unique (guild_id, type_combo) keys.
+    MAX_CACHE_SIZE = 5000
+
     def __init__(self, db):
         self._db = db
 
@@ -355,6 +359,11 @@ class GuildCache:
         Evict entries whose TTL has elapsed from every per-guild dict.
         Without this, dead keys accumulate forever because Python never
         shrinks dicts automatically.
+
+        Also enforces MAX_CACHE_SIZE on the high-cardinality tuple-key dicts
+        (_collectors, _type_pingers, _region_pingers) using oldest-entry
+        eviction, so they can never grow unboundedly during a long session
+        with many unique (guild_id, type_combo) keys.
         """
         dicts_to_clean = [
             self._guild_settings,
@@ -375,6 +384,19 @@ class GuildCache:
             for k in expired:
                 del d[k]
             total_removed += len(expired)
+
+        # Hard size cap on high-cardinality tuple-key caches.
+        # If still over MAX_CACHE_SIZE after TTL cleanup, evict the entries
+        # with the oldest expires_at (soonest-expiring = least useful).
+        for d in (self._collectors, self._type_pingers, self._region_pingers):
+            if len(d) > self.MAX_CACHE_SIZE:
+                overage = len(d) - self.MAX_CACHE_SIZE
+                # Sort by expiry ascending — remove the entries closest to expiring
+                oldest_keys = sorted(d.keys(), key=lambda k: d[k].expires_at)[:overage]
+                for k in oldest_keys:
+                    del d[k]
+                total_removed += overage
+                print(f"[GUILD_CACHE] Size cap: evicted {overage} oldest entries")
 
         # Also shrink the guild_locks dict — remove locks for guilds no
         # longer in any cache (avoids keeping asyncio.Lock objects forever)
