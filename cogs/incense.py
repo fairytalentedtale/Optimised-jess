@@ -376,11 +376,8 @@ class IncenseListView(discord.ui.View):
             except discord.HTTPException:
                 pass
         self.message = None
-
-
-# ─────────────────────────────────────────────
-#  The Cog
-# ─────────────────────────────────────────────
+        self.paused_pages = []  # release embed objects from memory
+        self.active_pages = []
 
 class Incense(commands.Cog):
     """
