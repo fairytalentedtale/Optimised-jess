@@ -37,19 +37,19 @@ def _ensure_heavy_imports():
 
 def _release_heavy_imports():
     """
-    Drop reference to onnxruntime only.
+    Drop the module-level reference to onnxruntime.
     numpy and PIL are intentionally LEFT in sys.modules — reimporting them
     after unloading fragments glibc's allocator and causes the
     'NumPy module was reloaded' warning you see in logs.
-    ONNX sessions are nullified before this is called, so the bulk of
-    model weights are already freed; we just clean up the ort module ref.
+
+    We do NOT pop onnxruntime from sys.modules either. The sessions are
+    already set to None before this is called, so the model weights are
+    freed. Repeatedly unloading/reloading native ML extension modules can
+    cause allocator fragmentation; keeping the module object in sys.modules
+    costs only a few KB and avoids the instability.
     """
     global ort
-    import sys
     ort = None
-    for mod_name in list(sys.modules.keys()):
-        if mod_name == 'onnxruntime' or mod_name.startswith('onnxruntime.'):
-            sys.modules.pop(mod_name, None)
     # np and Image are intentionally NOT touched here
 
 
@@ -459,16 +459,21 @@ class Prediction:
         """
         Resize + normalise from already-downloaded bytes.
         Called twice (primary + secondary) with ZERO extra network I/O.
+        Temporary PIL image is explicitly closed and deleted after array
+        extraction to release native memory immediately rather than waiting
+        for GC — this is one of the main causes of RAM creep under heavy load.
         """
         img = Image.open(io.BytesIO(raw_bytes)).convert("RGB")
         img = img.resize((width, height), Image.BICUBIC)  # faster than LANCZOS, negligible quality diff for CNN
         image_array = np.array(img, dtype=np.float32)
         img.close()
+        del img  # release PIL internal buffer immediately
 
         image_array /= 255.0
         mean = np.array([0.485, 0.456, 0.406], dtype=np.float32)
         std  = np.array([0.229, 0.224, 0.225], dtype=np.float32)
         image_array = (image_array - mean) / std
+        del mean, std  # free small intermediates
         image_array = np.transpose(image_array, (2, 0, 1))
         image_array = np.expand_dims(image_array, axis=0)
         return image_array
