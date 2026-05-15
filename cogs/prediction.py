@@ -438,6 +438,16 @@ class Prediction(commands.Cog):
         if not secondary_channel:
             return
 
+        # Extract everything we need from the message object immediately, then
+        # drop the reference so the large discord.Message (with guild/channel
+        # state, embeds, attachments) is not retained for the duration of this
+        # async function — especially important when the background task queue
+        # fills up during heavy incense sessions.
+        guild_name    = message.guild.name if message.guild else "Unknown"
+        channel_mention = message.channel.mention if message.channel else "Unknown"
+        jump_url      = message.jump_url
+        del message  # release discord.Message reference ASAP
+
         try:
             model_label = (
                 "Secondary Model (High Confidence)"
@@ -450,8 +460,8 @@ class Prediction(commands.Cog):
                 description=(
                     f"**Pokemon:** {name}\n"
                     f"**Confidence:** {confidence}\n"
-                    f"**Server:** {message.guild.name}\n"
-                    f"**Channel:** {message.channel.mention}"
+                    f"**Server:** {guild_name}\n"
+                    f"**Channel:** {channel_mention}"
                 ),
                 color=0x00bfff
             )
@@ -462,7 +472,7 @@ class Prediction(commands.Cog):
             view = discord.ui.View()
             view.add_item(discord.ui.Button(
                 label="Jump to Message",
-                url=message.jump_url,
+                url=jump_url,
                 emoji="🔗",
                 style=discord.ButtonStyle.link
             ))
