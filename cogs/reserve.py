@@ -76,6 +76,7 @@ class ReserveListView(discord.ui.View):
             except discord.HTTPException:
                 pass
         self.message = None
+        self.pages = []  # release embed objects from memory
 
 
 # ---------------------------------------------------------------------------
