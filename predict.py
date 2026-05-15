@@ -37,23 +37,20 @@ def _ensure_heavy_imports():
 
 def _release_heavy_imports():
     """
-    Drop references to the heavy modules so Python can (partially) unload
-    their native memory.  onnxruntime's C++ allocator may keep a small pool,
-    but the bulk of session + model weights is freed by nullifying the sessions
-    before calling this.
+    Drop reference to onnxruntime only.
+    numpy and PIL are intentionally LEFT in sys.modules — reimporting them
+    after unloading fragments glibc's allocator and causes the
+    'NumPy module was reloaded' warning you see in logs.
+    ONNX sessions are nullified before this is called, so the bulk of
+    model weights are already freed; we just clean up the ort module ref.
     """
-    global ort, np, Image
+    global ort
     import sys
-    ort   = None
-    np    = None
-    Image = None
+    ort = None
     for mod_name in list(sys.modules.keys()):
         if mod_name == 'onnxruntime' or mod_name.startswith('onnxruntime.'):
             sys.modules.pop(mod_name, None)
-        elif mod_name == 'numpy' or mod_name.startswith('numpy.'):
-            sys.modules.pop(mod_name, None)
-        elif mod_name == 'PIL' or mod_name.startswith('PIL.'):
-            sys.modules.pop(mod_name, None)
+    # np and Image are intentionally NOT touched here
 
 
 # Discord CDN URLs contain rotating query params (?ex=...&hm=...&is=...) that
@@ -110,7 +107,7 @@ SECONDARY_MODEL_POKEMON = {
 
 class PredictionCache:
     """Ultra-lightweight cache - ONLY stores final results"""
-    def __init__(self, max_size=100, ttl_seconds=300):  # 100 items, 5min TTL (Poketwo images expire anyway)
+    def __init__(self, max_size=30, ttl_seconds=60):  # reduced from 100/300 — Discord CDN URLs expire anyway
         self.cache = {}
         self.timestamps = {}
         self.max_size = max_size
@@ -495,6 +492,9 @@ class Prediction:
         probabilities = self.softmax(logits)
         prob = float(probabilities[pred_idx])
         name = class_names[pred_idx] if pred_idx < len(class_names) else f"unknown_{pred_idx}"
+
+        # Explicitly free numpy arrays — don't rely on GC
+        del outputs, logits, probabilities
         return name, prob
 
     async def predict_with_model(self, image, session,
