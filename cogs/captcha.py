@@ -23,7 +23,7 @@ class VerifyButton(discord.ui.View):
     """A persistent-ish View with a Verify link button and a Jump to Message button."""
 
     def __init__(self, verify_url: str, message_url: str):
-        super().__init__(timeout=600)  # disappear after 10 min
+        super().__init__(timeout=120)  # reduced from 600 — verify link is one-time use
         self.add_item(
             discord.ui.Button(
                 label="✅ Verify",
