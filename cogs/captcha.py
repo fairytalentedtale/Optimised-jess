@@ -1,6 +1,7 @@
 """Captcha alert cog — pings users in a designated channel when Pokétwo asks them to verify."""
 import re
 import time
+import asyncio
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -51,6 +52,29 @@ class Captcha(commands.Cog):
         self.bot = bot
         # { (guild_id, user_id): last_alerted_timestamp }
         self._cooldowns: dict[tuple[int, int], float] = {}
+        # Start background task that prunes stale cooldown entries every 5 min
+        self._cleanup_task = asyncio.create_task(self._cleanup_cooldowns_loop())
+
+    def cog_unload(self):
+        self._cleanup_task.cancel()
+
+    async def _cleanup_cooldowns_loop(self):
+        """Periodically remove expired cooldown entries to prevent unbounded growth."""
+        await asyncio.sleep(60)  # initial delay
+        while True:
+            try:
+                now = time.monotonic()
+                stale = [
+                    k for k, ts in self._cooldowns.items()
+                    if now - ts >= CAPTCHA_COOLDOWN_SECONDS
+                ]
+                for k in stale:
+                    del self._cooldowns[k]
+                if stale:
+                    print(f"[CAPTCHA] Cleaned {len(stale)} expired cooldown entries")
+            except Exception as e:
+                print(f"[CAPTCHA] Cleanup error: {e}")
+            await asyncio.sleep(300)  # run every 5 minutes
 
     @property
     def db(self):
