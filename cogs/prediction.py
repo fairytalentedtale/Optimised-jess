@@ -149,7 +149,12 @@ class Prediction(commands.Cog):
         return self.bot.http_session
 
     def _create_bg_task(self, coro):
-        """Fire-and-forget a coroutine, keeping a reference so it isn't GC'd prematurely."""
+        """Fire-and-forget a coroutine, keeping a reference so it isn't GC'd prematurely.
+        Capped at 50 pending tasks — if exceeded the coro is dropped to prevent
+        discord.Message objects piling up in memory during heavy incense sessions."""
+        if len(self._bg_tasks) >= 50:
+            coro.close()  # discard cleanly without an 'never awaited' warning
+            return None
         task = asyncio.create_task(coro)
         self._bg_tasks.add(task)
         task.add_done_callback(self._bg_tasks.discard)
