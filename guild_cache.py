@@ -188,13 +188,29 @@ class GuildCache:
         self._shiny_hunts.pop(guild_id, None)
 
     # -----------------------------------------------------------------------
-    # Collectors
+    # Rare collectors
     # -----------------------------------------------------------------------
-    async def get_collectors(self, guild_id: int, pokemon_names: list, afk_set: set) -> list:
-        key = (guild_id, tuple(sorted(pokemon_names)))
+    async def get_rare_collectors(self, guild_id: int, afk_set: set) -> list:
+        entry = self._rare_collectors.get(guild_id)
+        if not entry or not entry.is_valid():
+            raw = await self._db.get_rare_collectors(guild_id)
+            self._rare_collectors[guild_id] = _TTLEntry(raw, self.TTL_RARE)
+            entry = self._rare_collectors[guild_id]
+        return [uid for uid in entry.value if uid not in afk_set]
+
+    def invalidate_rare_collectors(self, guild_id: int):
+        self._rare_collectors.pop(guild_id, None)
+
+    # -----------------------------------------------------------------------
+    # Collectors (by type combo)
+    # -----------------------------------------------------------------------
+    async def get_collectors(self, guild_id: int, types: list, afk_set: set) -> list:
+        if not types:
+            return []
+        key = (guild_id, tuple(sorted(types)))
         entry = self._collectors.get(key)
         if not entry or not entry.is_valid():
-            raw = await self._db.get_collectors_for_pokemon(guild_id, pokemon_names, [])
+            raw = await self._db.get_users_for_types(guild_id, types, set())
             self._collectors[key] = _TTLEntry(raw, self.TTL_COLLECTORS)
             entry = self._collectors[key]
         return [uid for uid in entry.value if uid not in afk_set]
@@ -203,23 +219,6 @@ class GuildCache:
         to_del = [k for k in self._collectors if k[0] == guild_id]
         for k in to_del:
             del self._collectors[k]
-
-    # -----------------------------------------------------------------------
-    # Rare collectors
-    # -----------------------------------------------------------------------
-    async def get_rare_collectors(self, guild_id: int, afk_set: set) -> list:
-        entry = self._rare_collectors.get(guild_id)
-        if not entry or not entry.is_valid():
-            async with self._guild_lock(guild_id):
-                entry = self._rare_collectors.get(guild_id)
-                if not entry or not entry.is_valid():
-                    raw = await self._db.get_rare_collectors(guild_id, [])
-                    self._rare_collectors[guild_id] = _TTLEntry(raw, self.TTL_RARE)
-                    entry = self._rare_collectors[guild_id]
-        return [uid for uid in entry.value if uid not in afk_set]
-
-    def invalidate_rare_collectors(self, guild_id: int):
-        self._rare_collectors.pop(guild_id, None)
 
     # -----------------------------------------------------------------------
     # Type pingers
@@ -353,6 +352,7 @@ class GuildCache:
     # -----------------------------------------------------------------------
     # Cleanup — removes expired keys from all cache dicts to prevent bloat.
     # Call from memory_monitor every 60 s.
+    # Only logs when significant cleanup occurs (more than 5 entries removed)
     # -----------------------------------------------------------------------
     def cleanup_expired(self):
         """
@@ -364,6 +364,8 @@ class GuildCache:
         (_collectors, _type_pingers, _region_pingers) using oldest-entry
         eviction, so they can never grow unboundedly during a long session
         with many unique (guild_id, type_combo) keys.
+
+        OPTIMIZED: Only logs if significant cleanup occurs (> 5 entries removed)
         """
         dicts_to_clean = [
             self._guild_settings,
@@ -409,7 +411,8 @@ class GuildCache:
         for g in stale_locks:
             del self._guild_locks[g]
 
-        if total_removed:
+        # Only log if significant cleanup (more than 5 entries removed)
+        if total_removed > 5:
             print(f"[GUILD_CACHE] cleanup_expired: removed {total_removed} stale entries")
 
     # -----------------------------------------------------------------------
