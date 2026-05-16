@@ -432,6 +432,13 @@ class Incense(commands.Cog):
             )
             await ctx.send(embed=embed, reference=ctx.message, mention_author=False)
             return
+        if isinstance(error, commands.MissingRequiredArgument):
+            embed = discord.Embed(
+                description=f"❌ Missing required argument: `{error.param.name}`.\nUse `{config.BOT_PREFIX[0]}inc help` to see command usage.",
+                color=config.EMBED_COLOR
+            )
+            await ctx.send(embed=embed, reference=ctx.message, mention_author=False)
+            return
         # Re-raise anything else so the global error handler still sees it
         raise error
 
@@ -871,12 +878,23 @@ class Incense(commands.Cog):
 
     @inc_prefix_cat.command(name="add")
     @commands.has_permissions(manage_guild=True)
-    async def inc_prefix_cat_add(self, ctx: commands.Context, *, raw: str):
+    async def inc_prefix_cat_add(self, ctx: commands.Context, *, raw: str = None):
         """
         Add one or more categories to monitor.
         Usage:  inc cat add SPAWN1 SPAWN2
                 inc cat add "Incense 1" "Incense 2"
         """
+        if not raw:
+            p = config.BOT_PREFIX[0]
+            embed = discord.Embed(
+                description=(
+                    f"❌ Please provide at least one category name or ID.\n"
+                    f"**Usage:** `{p}inc cat add SPAWN1 SPAWN2`\n"
+                    f"Names with spaces: `{p}inc cat add \"Incense 1\" \"Incense 2\"`"
+                ),
+                color=config.EMBED_COLOR
+            )
+            return await ctx.send(embed=embed, reference=ctx.message, mention_author=False)
         names = _parse_category_names(raw)
         cats = await _get_categories(self.db, ctx.guild.id)
 
@@ -913,12 +931,23 @@ class Incense(commands.Cog):
 
     @inc_prefix_cat.command(name="remove")
     @commands.has_permissions(manage_guild=True)
-    async def inc_prefix_cat_remove(self, ctx: commands.Context, *, raw: str):
+    async def inc_prefix_cat_remove(self, ctx: commands.Context, *, raw: str = None):
         """
         Remove one or more categories from monitoring.
         Usage:  inc cat remove SPAWN1
                 inc cat remove "Incense 1" "Incense 2"
         """
+        if not raw:
+            p = config.BOT_PREFIX[0]
+            embed = discord.Embed(
+                description=(
+                    f"❌ Please provide at least one category name or ID.\n"
+                    f"**Usage:** `{p}inc cat remove SPAWN1`\n"
+                    f"Names with spaces: `{p}inc cat remove \"Incense 1\"`"
+                ),
+                color=config.EMBED_COLOR
+            )
+            return await ctx.send(embed=embed, reference=ctx.message, mention_author=False)
         names = _parse_category_names(raw)
         cats = await _get_categories(self.db, ctx.guild.id)
 
@@ -996,19 +1025,29 @@ class Incense(commands.Cog):
 
     @inc_prefix_allowedroles.command(name="add")
     @commands.has_permissions(manage_guild=True)
-    async def inc_prefix_allowedroles_add(self, ctx: commands.Context, *, raw: str):
+    async def inc_prefix_allowedroles_add(self, ctx: commands.Context, *, raw: str = None):
         """
         Add one or more roles (by mention or ID) to the allowed list.
         Usage:  inc allowedroles add @Role1 @Role2
                 inc allowedroles add 123456789
         """
+        if not raw and not ctx.message.role_mentions:
+            p = config.BOT_PREFIX[0]
+            embed = discord.Embed(
+                description=(
+                    f"❌ Please mention a role or provide a role ID.\n"
+                    f"**Usage:** `{p}inc allowedroles add @Role`"
+                ),
+                color=config.EMBED_COLOR
+            )
+            return await ctx.send(embed=embed, reference=ctx.message, mention_author=False)
         # Collect role IDs from mentions and raw IDs
         allowed = await _get_allowed_roles(self.db, ctx.guild.id)
         added, skipped = [], []
 
         candidates = [r.id for r in ctx.message.role_mentions]
         if not candidates:
-            for token in raw.split():
+            for token in (raw or "").split():
                 token = token.strip("<@&>")
                 if token.isdigit():
                     candidates.append(int(token))
@@ -1045,7 +1084,7 @@ class Incense(commands.Cog):
 
     @inc_prefix_allowedroles.command(name="remove")
     @commands.has_permissions(manage_guild=True)
-    async def inc_prefix_allowedroles_remove(self, ctx: commands.Context, *, raw: str):
+    async def inc_prefix_allowedroles_remove(self, ctx: commands.Context, *, raw: str = None):
         """
         Remove one or more roles from the allowed list.
         Usage:  inc allowedroles remove @Role
@@ -1056,7 +1095,7 @@ class Incense(commands.Cog):
 
         candidates = [r.id for r in ctx.message.role_mentions]
         if not candidates:
-            for token in raw.split():
+            for token in (raw or "").split():
                 token = token.strip("<@&>")
                 if token.isdigit():
                     candidates.append(int(token))
