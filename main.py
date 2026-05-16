@@ -75,7 +75,8 @@ async def initialize_http_session():
         limit=50,
         limit_per_host=10,
         keepalive_timeout=30,
-        enable_cleanup_closed=True
+        enable_cleanup_closed=True,
+        ttl_dns_cache=300,  # cache Discord CDN DNS lookups for 5 minutes
     )
 
     bot.http_session = aiohttp.ClientSession(
