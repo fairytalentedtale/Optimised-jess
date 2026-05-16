@@ -5,7 +5,6 @@ import asyncio
 import aiohttp
 import psutil
 import gc
-import time
 from discord.ext import commands
 from discord import app_commands
 from database import Database
@@ -39,7 +38,7 @@ bot = commands.Bot(
     intents=intents,
     help_command=None,
     case_insensitive=True,
-    max_messages=None
+    max_messages=1000  # ← FIXED: Was None (unlimited), now limits to 1000 messages
 )
 
 # Global instances
@@ -87,29 +86,20 @@ async def initialize_http_session():
 
 
 async def memory_monitor():
-    """Monitor and log memory usage every 5 minutes (reduced from every 60 seconds)"""
+    """Monitor and log memory usage periodically"""
     await asyncio.sleep(10)
-
-    # Track last log time to reduce frequency
-    last_log_time = 0
-    LOG_INTERVAL = 300  # 5 minutes in seconds — change to 600 for 10 minutes
 
     while True:
         try:
-            current_time = time.time()
             mem_info = bot.process.memory_info()
             mem_mb = mem_info.rss / 1024 / 1024
 
             models_loaded = bot.predictor and bot.predictor.models_initialized
             model_status = "loaded" if models_loaded else "not loaded"
 
-            # Only log regular memory status every 5 minutes
-            if current_time - last_log_time >= LOG_INTERVAL:
-                print(f"[MEMORY] {mem_mb:.1f} MB | Models: {model_status} | Predictions: {bot.prediction_count}")
-                last_log_time = current_time
+            print(f"[MEMORY] {mem_mb:.1f} MB | Models: {model_status} | Predictions: {bot.prediction_count}")
 
             # Run GC early — 320 MB gives headroom before Railway's 500 MB wall
-            # Always check, but only log if triggered
             if mem_mb > 320:
                 print(f"[MEMORY] ⚠️ High usage ({mem_mb:.1f} MB), forcing GC...")
                 gc.collect()
@@ -121,7 +111,7 @@ async def memory_monitor():
             if bot.db and hasattr(bot.db, 'gcache') and bot.db.gcache:
                 bot.db.gcache.cleanup_expired()
 
-            await asyncio.sleep(60)  # Keep checking every 60 seconds internally
+            await asyncio.sleep(60)
 
         except Exception as e:
             print(f"[MEMORY] Monitor error: {e}")
@@ -241,6 +231,57 @@ async def on_command_error(ctx, error):
 
     print(f"Unexpected error in command {ctx.command}: {error}")
     await ctx.reply("❌ An unexpected error occurred. Please try again later.", mention_author=False)
+
+
+# ============================================================================
+# DIAGNOSTIC COMMAND - Check memory and cache status
+# ============================================================================
+@bot.command(name="memcheck")
+async def memcheck(ctx):
+    """Check bot's memory usage and cache status"""
+    try:
+        mem_info = bot.process.memory_info()
+        mem_mb = mem_info.rss / 1024 / 1024
+        
+        # Get number of cached messages
+        cached_messages = len(bot.cached_messages) if hasattr(bot, 'cached_messages') else 0
+        
+        # Create response
+        embed = discord.Embed(
+            title="💾 Memory & Cache Status",
+            color=discord.Color.blue()
+        )
+        
+        embed.add_field(
+            name="RAM Usage",
+            value=f"{mem_mb:.1f} MB / 500 MB ({(mem_mb/500)*100:.1f}%)",
+            inline=False
+        )
+        
+        embed.add_field(
+            name="Cached Messages",
+            value=f"{cached_messages:,} / 1000 (max)",
+            inline=False
+        )
+        
+        embed.add_field(
+            name="Predictions Made",
+            value=str(bot.prediction_count),
+            inline=False
+        )
+        
+        # Add warning if memory is high
+        if mem_mb > 400:
+            embed.color = discord.Color.red()
+            embed.add_field(name="⚠️ WARNING", value="Memory is dangerously high!", inline=False)
+        elif mem_mb > 350:
+            embed.color = discord.Color.orange()
+            embed.add_field(name="⚠️ WARNING", value="Memory usage is elevated", inline=False)
+        
+        await ctx.send(embed=embed)
+        
+    except Exception as e:
+        await ctx.send(f"❌ Error: {e}")
 
 
 async def cleanup():
