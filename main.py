@@ -241,6 +241,10 @@ async def on_command_error(ctx, error):
         await ctx.reply("❌ This command can only be used by the bot owner.", mention_author=False)
         return
 
+    if isinstance(error, commands.NoPrivateMessage):
+        await ctx.reply("❌ This command can't be used in DMs. Please use it in a server.", mention_author=False)
+        return
+
     if isinstance(error, commands.CheckFailure):
         # Catches any other failed checks not handled above
         return
