@@ -530,7 +530,7 @@ class Prediction:
         if not self.models_initialized:
             raise RuntimeError(
                 "Prediction models are not loaded. "
-                "Use `!loadmodel` to load them before running predictions."
+                "Use `p!model load` to load them before running predictions."
             )
 
         if session is None:
