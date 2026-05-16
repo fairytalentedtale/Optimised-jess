@@ -36,11 +36,34 @@ class ModelControl(commands.Cog):
     def _get_mem_mb(self) -> float:
         return self.bot.process.memory_info().rss / 1024 / 1024
 
+    # ── Group ─────────────────────────────────────────────────────────────────
+
+    @commands.group(
+        name="model",
+        aliases=["models"],
+        invoke_without_command=True,
+        case_insensitive=True
+    )
+    @is_admin_or_owner()
+    async def model_group(self, ctx):
+        """Model management. Use subcommands: load, unload, reload, status"""
+        p = ctx.prefix
+        embed = discord.Embed(
+            title="🤖 Model Commands",
+            description=(
+                f"`{p}model load` — Download (if needed) and load models into RAM\n"
+                f"`{p}model unload` — Unload models from RAM\n"
+                f"`{p}model reload` — Re-download latest models from GitHub and reload\n"
+                f"`{p}model status` — Show load state, RAM usage, and prediction stats"
+            ),
+            color=discord.Color.blurple()
+        )
+        await ctx.reply(embed=embed, mention_author=False)
+
     # ── Load ──────────────────────────────────────────────────────────────────
 
-    @commands.command(name="loadmodel", aliases=["lm", "modelload", "startmodel"])
-    @is_admin_or_owner()
-    async def loadmodel_command(self, ctx):
+    @model_group.command(name="load", aliases=["l", "start"])
+    async def model_load(self, ctx):
         """Download (if needed) and load prediction models into RAM"""
         if self.predictor is None:
             await ctx.reply("❌ Predictor not initialised — bot may still be starting up.", mention_author=False)
@@ -51,7 +74,7 @@ class ModelControl(commands.Cog):
             await ctx.reply(
                 f"⚠️ Models are **already loaded**.\n"
                 f"RAM usage: `{mem:.1f} MB`\n"
-                f"Use `{ctx.prefix}modelstatus` for full details.",
+                f"Use `{ctx.prefix}model status` for full details.",
                 mention_author=False
             )
             return
@@ -71,7 +94,7 @@ class ModelControl(commands.Cog):
         mem_after = self._get_mem_mb()
         mem_used = mem_after - mem_before
 
-        # Warm guild cache so the first spawns after !loadmodel don't hit the DB
+        # Warm guild cache so the first spawns after loading don't hit the DB
         pred_cog = self.bot.get_cog('Prediction')
         if pred_cog and hasattr(pred_cog, 'gcache'):
             try:
@@ -91,9 +114,8 @@ class ModelControl(commands.Cog):
 
     # ── Unload ────────────────────────────────────────────────────────────────
 
-    @commands.command(name="unloadmodel", aliases=["um", "modelunload", "stopmodel"])
-    @is_admin_or_owner()
-    async def unloadmodel_command(self, ctx):
+    @model_group.command(name="unload", aliases=["u", "stop"])
+    async def model_unload(self, ctx):
         """Unload prediction models from RAM"""
         if self.predictor is None:
             await ctx.reply("❌ Predictor not initialised.", mention_author=False)
@@ -101,7 +123,7 @@ class ModelControl(commands.Cog):
 
         if not self.predictor.models_initialized:
             await ctx.reply(
-                f"⚠️ Models are **not currently loaded** — nothing to unload.",
+                "⚠️ Models are **not currently loaded** — nothing to unload.",
                 mention_author=False
             )
             return
@@ -124,15 +146,14 @@ class ModelControl(commands.Cog):
             f"✅ **Models unloaded.**\n"
             f"> 🗑 RAM freed: `{mem_freed:.1f} MB`\n"
             f"> 💾 Total RAM now: `{mem_after:.1f} MB`\n"
-            f"> Use `{ctx.prefix}loadmodel` to reload when needed.",
+            f"> Use `{ctx.prefix}model load` to reload when needed.",
             mention_author=False
         )
 
     # ── Reload ────────────────────────────────────────────────────────────────
 
-    @commands.command(name="reloadmodel", aliases=["rm", "modelreload", "refreshmodel"])
-    @is_admin_or_owner()
-    async def reloadmodel_command(self, ctx):
+    @model_group.command(name="reload", aliases=["r", "refresh"])
+    async def model_reload(self, ctx):
         """Force re-download the latest models from GitHub and reload into RAM"""
         if self.predictor is None:
             await ctx.reply("❌ Predictor not initialised — bot may still be starting up.", mention_author=False)
@@ -173,7 +194,7 @@ class ModelControl(commands.Cog):
                     await loading_msg.edit(content=f"❌ Failed to delete `{os.path.basename(path)}`: `{e}`")
                     return
 
-        await loading_msg.edit(content=f"⏳ Cache cleared. Downloading latest models from GitHub…")
+        await loading_msg.edit(content="⏳ Cache cleared. Downloading latest models from GitHub…")
 
         # Step 3: Re-download and load
         mem_before = self._get_mem_mb()
@@ -212,9 +233,8 @@ class ModelControl(commands.Cog):
 
     # ── Status ────────────────────────────────────────────────────────────────
 
-    @commands.command(name="modelstatus", aliases=["ms", "modelinfo", "modelsinfo"])
-    @is_admin_or_owner()
-    async def modelstatus_command(self, ctx):
+    @model_group.command(name="status", aliases=["s", "info"])
+    async def model_status(self, ctx):
         """Show current model load state, RAM usage, and prediction stats"""
         if self.predictor is None:
             await ctx.reply("❌ Predictor not initialised — bot may still be starting up.", mention_author=False)
@@ -269,21 +289,20 @@ class ModelControl(commands.Cog):
         embed.add_field(name="Model Files on Disk", value=disk_lines, inline=False)
 
         if not loaded:
-            embed.set_footer(text=f"Use {ctx.prefix}loadmodel to load models into RAM")
+            embed.set_footer(text=f"Use {ctx.prefix}model load to load models into RAM")
         else:
-            embed.set_footer(text=f"Use {ctx.prefix}unloadmodel to free RAM when done")
+            embed.set_footer(text=f"Use {ctx.prefix}model unload to free RAM when done")
 
         await ctx.reply(embed=embed, mention_author=False)
 
     # ── Error handler ─────────────────────────────────────────────────────────
 
-    @loadmodel_command.error
-    @unloadmodel_command.error
-    @reloadmodel_command.error
-    @modelstatus_command.error
-    async def model_command_error(self, ctx, error):
+    async def cog_command_error(self, ctx, error):
         if isinstance(error, commands.CheckFailure):
-            await ctx.reply("❌ You need to be a server administrator or bot owner to use this command.", mention_author=False)
+            await ctx.reply(
+                "❌ You need to be a server administrator or bot owner to use this command.",
+                mention_author=False
+            )
 
 
 async def setup(bot):
