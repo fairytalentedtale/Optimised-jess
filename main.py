@@ -55,7 +55,7 @@ async def initialize_predictor():
     """Create the Prediction object — does NOT load models into RAM."""
     try:
         bot.predictor = Prediction()
-        print("✅ Predictor object created (models not loaded — use !loadmodel when ready)")
+        print("✅ Predictor object created (models not loaded — use p!loadmodel when ready)")
     except Exception as e:
         print(f"❌ Failed to create predictor: {e}")
 
