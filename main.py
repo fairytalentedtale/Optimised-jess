@@ -149,7 +149,7 @@ async def on_ready():
         'cogs.prediction',
         'cogs.category',
         'cogs.captcha',
-        'cogs.starboard_settings',
+        'cogs.channelconfig',
         'cogs.starboard_catch',
         'cogs.starboard_egg',
         'cogs.starboard_unbox',
