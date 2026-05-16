@@ -5,13 +5,13 @@ from discord.ext import commands
 from config import EMBED_COLOR, Emojis
 
 # ---------------------------------------------------------------------------
-# AFK view – now has 4 toggles: ShinyHunt, Collection, TypePings, RegionPings
+# AFK view – 4 toggles: ShinyHunt, Collection, TypePings, RegionPings
 # ---------------------------------------------------------------------------
 class AFKView(discord.ui.View):
     """AFK toggle buttons (global)"""
 
     def __init__(self, user_id, collection_afk, shiny_hunt_afk, type_ping_afk, region_ping_afk, cog):
-        super().__init__(timeout=60)  # reduced from 300
+        super().__init__(timeout=60)
         self.user_id = user_id
         self.cog = cog
         self.message: discord.Message | None = None
@@ -25,7 +25,7 @@ class AFKView(discord.ui.View):
             b = discord.ui.Button(
                 label=label,
                 style=discord.ButtonStyle.red if afk else discord.ButtonStyle.green,
-                custom_id=custom_id
+                custom_id=custom_id,
             )
             return b
 
@@ -58,7 +58,7 @@ class AFKView(discord.ui.View):
                 f"🌏 Region Pings: {_dot(region_ping_afk)}\n\n"
                 "*AFK status applies across all servers*"
             ),
-            color=EMBED_COLOR
+            color=EMBED_COLOR,
         )
         return embed
 
@@ -119,19 +119,17 @@ class AFKView(discord.ui.View):
         self.cog = None
 
 
-
-
 # ---------------------------------------------------------------------------
-# Confirm view for /clear-pings (slash version can't use wait_for)
+# Confirm view for /clear-pings
 # ---------------------------------------------------------------------------
 class _ClearPingsConfirmView(discord.ui.View):
     def __init__(self, author_id, db, bot, guild, target_id, target_name):
         super().__init__(timeout=30)
-        self.author_id  = author_id
-        self.db         = db
-        self.bot        = bot
-        self.guild      = guild
-        self.target_id  = target_id
+        self.author_id   = author_id
+        self.db          = db
+        self.bot         = bot
+        self.guild       = guild
+        self.target_id   = target_id
         self.target_name = target_name
 
     async def _check(self, interaction: discord.Interaction) -> bool:
@@ -154,7 +152,7 @@ class _ClearPingsConfirmView(discord.ui.View):
             type_res = await db_raw.type_pings.delete_many(  {"user_id": self.target_id, "guild_id": guild_id})
             rgn_res  = await db_raw.region_pings.delete_many({"user_id": self.target_id, "guild_id": guild_id})
             embed = discord.Embed(title="✅ User Ping Data Cleared", color=EMBED_COLOR)
-            embed.add_field(name="User",         value=f"{self.target_name} (`{self.target_id}`)", inline=False)
+            embed.add_field(name="User", value=f"{self.target_name} (`{self.target_id}`)", inline=False)
         else:
             col_res  = await db_raw.collections.delete_many( {"guild_id": guild_id})
             shy_res  = await db_raw.shiny_hunts.delete_many( {"guild_id": guild_id})
@@ -162,7 +160,7 @@ class _ClearPingsConfirmView(discord.ui.View):
             rgn_res  = await db_raw.region_pings.delete_many({"guild_id": guild_id})
             embed = discord.Embed(title="✅ Server Ping Data Cleared", color=EMBED_COLOR)
 
-        embed.add_field(name="Server",       value=self.guild.name,                   inline=False)
+        embed.add_field(name="Server",       value=self.guild.name,                    inline=False)
         embed.add_field(name="Collections",  value=f"{col_res.deleted_count} removed",  inline=True)
         embed.add_field(name="Shiny Hunts",  value=f"{shy_res.deleted_count} removed",  inline=True)
         embed.add_field(name="Type Pings",   value=f"{type_res.deleted_count} removed",  inline=True)
@@ -217,7 +215,7 @@ class Settings(commands.Cog):
                 f"🌏 Region Pings: {_dot(rgn_afk)}\n\n"
                 "*AFK status applies across all servers*"
             ),
-            color=EMBED_COLOR
+            color=EMBED_COLOR,
         )
 
         view = AFKView(ctx.author.id, col_afk, shy_afk, type_afk, rgn_afk, self)
@@ -225,96 +223,166 @@ class Settings(commands.Cog):
         view.message = msg
 
     # ------------------------------------------------------------------
-    # Server role settings (admin only)
+    # p!role  (group) — shows usage when invoked without subcommand
     # ------------------------------------------------------------------
-    @commands.command(name="rare-role", aliases=["rr", "rarerole"])
+
+    @commands.group(name="role", aliases=["roles"], invoke_without_command=True)
     @commands.has_permissions(administrator=True)
-    async def rare_role_command(self, ctx, role: discord.Role = None):
-        """Set or clear the rare Pokemon ping role for this server"""
+    async def role_group(self, ctx):
+        """View or configure server ping roles.
+
+        Subcommands:
+            p!role rare [@role]      — set/clear the rare Pokémon ping role
+            p!role regional [@role]  — set/clear the regional Pokémon ping role
+
+        Run without a subcommand to see currently configured roles.
+        """
+        settings = await self.db.get_guild_settings(ctx.guild.id)
+        p = ctx.prefix
+
+        rare_id     = settings.get("rare_role_id")
+        regional_id = settings.get("regional_role_id")
+
+        embed = discord.Embed(
+            title="📋 Server Ping Roles",
+            color=EMBED_COLOR,
+        )
+        embed.add_field(
+            name="Rare Role",
+            value=f"<@&{rare_id}>" if rare_id else "Not set",
+            inline=True,
+        )
+        embed.add_field(
+            name="Regional Role",
+            value=f"<@&{regional_id}>" if regional_id else "Not set",
+            inline=True,
+        )
+        embed.add_field(name="\u200b", value="\u200b", inline=True)  # spacer
+
+        embed.add_field(
+            name="ℹ️ How to set",
+            value=(
+                f"`{p}role rare @Role` — set rare ping role  (omit @Role to clear)\n"
+                f"`{p}role regional @Role` — set regional ping role  (omit @Role to clear)\n\n"
+                "**Note:** Incense/Reserve allowed-roles are managed inside those commands."
+            ),
+            inline=False,
+        )
+        await ctx.reply(embed=embed, mention_author=False)
+
+    @role_group.error
+    async def role_group_error(self, ctx, error):
+        if isinstance(error, commands.MissingPermissions):
+            await ctx.reply("❌ You need administrator permissions to use this command.", mention_author=False)
+
+    # ── p!role rare [@role] ────────────────────────────────────────────
+
+    @role_group.command(name="rare", aliases=["r"])
+    @commands.has_permissions(administrator=True)
+    async def role_rare_cmd(self, ctx, role: discord.Role = None):
+        """Set or clear the rare Pokémon ping role for this server (Admin only).
+
+        Examples:
+            p!role rare @Rare Hunters   → set the rare role
+            p!role rare                  → clear / disable
+        """
         if role is None:
             await self.db.set_rare_role(ctx.guild.id, None)
-            await ctx.reply("✅ Rare role cleared", mention_author=False)
+            await ctx.reply("✅ Rare role cleared.", mention_author=False)
         else:
             await self.db.set_rare_role(ctx.guild.id, role.id)
             await ctx.reply(f"✅ Rare role set to {role.mention}", mention_author=False)
 
-    @rare_role_command.error
-    async def rare_role_error(self, ctx, error):
+    @role_rare_cmd.error
+    async def role_rare_error(self, ctx, error):
         if isinstance(error, commands.MissingPermissions):
             await ctx.reply("❌ You need administrator permissions to use this command.", mention_author=False)
         elif isinstance(error, commands.BadArgument):
-            if ctx.message.content.lower().endswith(" none"):
+            # Accept "none" explicitly typed
+            if ctx.message.content.lower().split()[-1] == "none":
                 await self.db.set_rare_role(ctx.guild.id, None)
-                await ctx.reply("✅ Rare role cleared", mention_author=False)
+                await ctx.reply("✅ Rare role cleared.", mention_author=False)
             else:
-                await ctx.reply("❌ Invalid role mention or ID. Use @role, role ID, or 'none' to clear.", mention_author=False)
+                await ctx.reply(
+                    "❌ Invalid role. Mention a role, use its ID, or omit to clear.", mention_author=False
+                )
 
-    @commands.command(name="regional-role", aliases=["regrole", "regional", "regionrole"])
+    # ── p!role regional [@role] ────────────────────────────────────────
+
+    @role_group.command(name="regional", aliases=["reg"])
     @commands.has_permissions(administrator=True)
-    async def regional_role_command(self, ctx, role: discord.Role = None):
-        """Set or clear the regional Pokemon ping role for this server"""
+    async def role_regional_cmd(self, ctx, role: discord.Role = None):
+        """Set or clear the regional Pokémon ping role for this server (Admin only).
+
+        Examples:
+            p!role regional @Regional   → set the regional role
+            p!role regional              → clear / disable
+        """
         if role is None:
             await self.db.set_regional_role(ctx.guild.id, None)
-            await ctx.reply("✅ Regional role cleared", mention_author=False)
+            await ctx.reply("✅ Regional role cleared.", mention_author=False)
         else:
             await self.db.set_regional_role(ctx.guild.id, role.id)
             await ctx.reply(f"✅ Regional role set to {role.mention}", mention_author=False)
 
-    @regional_role_command.error
-    async def regional_role_error(self, ctx, error):
+    @role_regional_cmd.error
+    async def role_regional_error(self, ctx, error):
         if isinstance(error, commands.MissingPermissions):
             await ctx.reply("❌ You need administrator permissions to use this command.", mention_author=False)
         elif isinstance(error, commands.BadArgument):
-            if ctx.message.content.lower().endswith(" none"):
+            if ctx.message.content.lower().split()[-1] == "none":
                 await self.db.set_regional_role(ctx.guild.id, None)
-                await ctx.reply("✅ Regional role cleared", mention_author=False)
+                await ctx.reply("✅ Regional role cleared.", mention_author=False)
             else:
-                await ctx.reply("❌ Invalid role mention or ID. Use @role, role ID, or 'none' to clear.", mention_author=False)
+                await ctx.reply(
+                    "❌ Invalid role. Mention a role, use its ID, or omit to clear.", mention_author=False
+                )
 
+    # ------------------------------------------------------------------
+    # p!server-settings
+    # ------------------------------------------------------------------
     @commands.command(name="server-settings", aliases=["ss", "ssettings", "serversettings"])
     async def server_settings_command(self, ctx):
         """View current server settings"""
         settings = await self.db.get_guild_settings(ctx.guild.id)
+        p = ctx.prefix
 
         embed = discord.Embed(
-            title=f"Server Settings for {ctx.guild.name}",
-            color=EMBED_COLOR
+            title=f"Server Settings — {ctx.guild.name}",
+            color=EMBED_COLOR,
         )
 
-        rare_role_id = settings.get('rare_role_id')
-        embed.add_field(name="Rare Role", value=f"<@&{rare_role_id}>" if rare_role_id else "Not set", inline=True)
+        rare_role_id = settings.get("rare_role_id")
+        embed.add_field(name="Rare Role",     value=f"<@&{rare_role_id}>" if rare_role_id else "Not set", inline=True)
 
-        regional_role_id = settings.get('regional_role_id')
+        regional_role_id = settings.get("regional_role_id")
         embed.add_field(name="Regional Role", value=f"<@&{regional_role_id}>" if regional_role_id else "Not set", inline=True)
 
-        best_name_enabled = settings.get('best_name_enabled', False)
-        embed.add_field(name="Best Name", value="Enabled ✅" if best_name_enabled else "Disabled ❌", inline=True)
+        embed.add_field(name="\u200b", value="\u200b", inline=True)  # spacer row
 
-        only_pings = settings.get('only_pings', False)
-        embed.add_field(name="Only-Pings", value="Enabled ✅" if only_pings else "Disabled ❌", inline=True)
+        best_name_enabled = settings.get("best_name_enabled", False)
+        embed.add_field(name="Best Name",        value="Enabled ✅" if best_name_enabled else "Disabled ❌", inline=True)
 
-        catch_command_enabled = settings.get('catch_command_enabled', False)
-        embed.add_field(name="Catch Command Line", value="Enabled ✅" if catch_command_enabled else "Disabled ❌", inline=True)
+        only_pings = settings.get("only_pings", False)
+        embed.add_field(name="Only-Pings",       value="Enabled ✅" if only_pings else "Disabled ❌", inline=True)
 
-        hint_solver_enabled = settings.get('hint_solver_enabled', True)
-        embed.add_field(name="Hint Solver", value="Enabled ✅" if hint_solver_enabled else "Disabled ❌", inline=True)
+        catch_command_enabled = settings.get("catch_command_enabled", False)
+        embed.add_field(name="Catch Command",    value="Enabled ✅" if catch_command_enabled else "Disabled ❌", inline=True)
 
-        captcha_channel_id = settings.get('captcha_channel_id')
-        captcha_val = f"<#{captcha_channel_id}>" if captcha_channel_id else "Not set (captcha alerts disabled)"
-        embed.add_field(name="Captcha Alert Channel", value=captcha_val, inline=True)
+        hint_solver_enabled = settings.get("hint_solver_enabled", True)
+        embed.add_field(name="Hint Solver",      value="Enabled ✅" if hint_solver_enabled else "Disabled ❌", inline=True)
 
         embed.add_field(
-            name="⭐ Starboard Settings",
-            value="Use `p!starboard-settings` to view starboard channel configuration",
-            inline=False
+            name="📺 Channel Config",
+            value=f"Use `{p}channel settings` to view all configured channels",
+            inline=False,
         )
 
         embed.set_footer(text=f"Guild ID: {ctx.guild.id}")
         await ctx.reply(embed=embed, mention_author=False)
 
     # ------------------------------------------------------------------
-    # p!toggle <feature>  (server owners / admins)
-    # Supported: best_name, only_pings
+    # p!toggle <feature>
     # ------------------------------------------------------------------
     @commands.group(name="toggle", invoke_without_command=True)
     @commands.has_permissions(administrator=True)
@@ -324,6 +392,8 @@ class Settings(commands.Cog):
         Examples:
             p!toggle best_name
             p!toggle only_pings
+            p!toggle catch_command
+            p!toggle hint_solver
         """
         if feature is None:
             p = ctx.prefix
@@ -335,7 +405,7 @@ class Settings(commands.Cog):
                     f"`{p}toggle catch_command` — Toggle catch command line in predictions\n"
                     f"`{p}toggle hint_solver` — Toggle automatic hint solving"
                 ),
-                color=EMBED_COLOR
+                color=EMBED_COLOR,
             )
             await ctx.reply(embed=embed, mention_author=False)
             return
@@ -373,7 +443,7 @@ class Settings(commands.Cog):
         else:
             await ctx.reply(
                 f"❌ Unknown feature `{feature}`. Available: `best_name`, `only_pings`, `catch_command`, `hint_solver`",
-                mention_author=False
+                mention_author=False,
             )
 
     @toggle_command.error
@@ -382,37 +452,29 @@ class Settings(commands.Cog):
             await ctx.reply("❌ You need administrator permissions to use this command.", mention_author=False)
         elif isinstance(error, commands.MissingRequiredArgument):
             p = ctx.prefix
-            await ctx.reply(f"❌ Usage: `{p}toggle <feature>` (e.g. `{p}toggle best_name`, `{p}toggle only_pings`)", mention_author=False)
+            await ctx.reply(
+                f"❌ Usage: `{p}toggle <feature>` (e.g. `{p}toggle best_name`, `{p}toggle only_pings`)",
+                mention_author=False,
+            )
 
     # ------------------------------------------------------------------
-    # Global settings (bot owner only)
+    # p!only-pings (kept for backward compat; thin wrapper over toggle)
     # ------------------------------------------------------------------
-    @commands.command(name="set-low-prediction-channel", aliases=["setlowpred", "lowpredchannel"])
-    @commands.is_owner()
-    async def set_low_prediction_channel_command(self, ctx, channel: discord.TextChannel):
-        """Set the global channel for low confidence predictions (bot owner only)"""
-        await self.db.set_low_prediction_channel(channel.id)
-        await ctx.reply(f"✅ Low prediction channel set to {channel.mention}", mention_author=False)
-
-    @set_low_prediction_channel_command.error
-    async def set_low_prediction_channel_error(self, ctx, error):
-        if isinstance(error, commands.NotOwner):
-            await ctx.reply("❌ Only the bot owner can use this command.", mention_author=False)
-        elif isinstance(error, commands.BadArgument):
-            await ctx.reply("❌ Invalid channel mention or ID.", mention_author=False)
-
     @commands.command(name="only-pings", aliases=["op", "onlypings"])
     @commands.has_permissions(administrator=True)
     async def only_pings_command(self, ctx, enabled: bool = None):
-        """Toggle or view only-pings mode (Admin only). Also available as p!toggle only_pings"""
+        """Toggle or view only-pings mode. Also available as p!toggle only_pings"""
         if enabled is None:
-            # View current status
             current_status = await self.db.get_only_pings(ctx.guild.id)
             status_text = "enabled ✅" if current_status else "disabled ❌"
             embed = discord.Embed(
                 title="Only-Pings Mode",
-                description=f"Current status: **{status_text}**\n\nWhen enabled, predictions are only sent when there are collectors, hunters, or rare/regional/type/region pings.",
-                color=EMBED_COLOR
+                description=(
+                    f"Current status: **{status_text}**\n\n"
+                    "When enabled, predictions are only sent when there are collectors, "
+                    "hunters, or rare/regional/type/region pings."
+                ),
+                color=EMBED_COLOR,
             )
             embed.set_footer(text="Use 'p!toggle only_pings' to toggle, or 'p!only-pings true/false' to set directly")
             await ctx.reply(embed=embed, mention_author=False)
@@ -429,31 +491,16 @@ class Settings(commands.Cog):
         elif isinstance(error, commands.BadArgument):
             await ctx.reply("❌ Invalid argument. Use `true` or `false`", mention_author=False)
 
-    @commands.command(name="set-secondary-model-channel", aliases=["setsecondary", "secondarychannel"])
-    @commands.is_owner()
-    async def set_secondary_model_channel_command(self, ctx, channel: discord.TextChannel):
-        """Set the global channel for secondary model predictions (bot owner only)"""
-        await self.db.set_secondary_model_channel(channel.id)
-        await ctx.reply(f"✅ Secondary model channel set to {channel.mention}", mention_author=False)
-
-    @set_secondary_model_channel_command.error
-    async def set_secondary_model_channel_error(self, ctx, error):
-        if isinstance(error, commands.NotOwner):
-            await ctx.reply("❌ Only the bot owner can use this command.", mention_author=False)
-        elif isinstance(error, commands.BadArgument):
-            await ctx.reply("❌ Invalid channel mention or ID.", mention_author=False)
-
     # ------------------------------------------------------------------
-    # p!clear-server-pings  (bot owner / server owner / admin only)
+    # p!clear-pings
     # ------------------------------------------------------------------
     @commands.command(name="clear-pings", aliases=["clearpings", "clearserverpings", "resetpings"])
     async def clear_server_pings_command(self, ctx, target: str = None):
-        """Clear all ping data (collections, shiny hunts, type pings, region pings)
-        for a specific user OR every user in this server.
+        """Clear all ping data for a specific user or every user in this server.
 
         Usage:
             p!clear-pings             → clears ALL users in this server
-            p!clear-pings @user       → clears only that user (must be in server)
+            p!clear-pings @user       → clears only that user
             p!clear-pings <user_id>   → clears by raw ID (works even if user left)
         """
         # ── Resolve target user ID ─────────────────────────────────────
@@ -482,11 +529,11 @@ class Settings(commands.Cog):
         if not (is_owner or is_srv_owner or is_admin):
             await ctx.reply(
                 "❌ You need to be the server owner, an administrator, or the bot owner to use this command.",
-                mention_author=False
+                mention_author=False,
             )
             return
 
-        # ── Confirmation with buttons ──────────────────────────────────
+        # ── Confirmation ───────────────────────────────────────────────
         if target_id:
             prompt_text = f"⚠️ This will clear **all ping data** for **{target_name}** (`{target_id}`) in **{ctx.guild.name}**."
         else:
@@ -507,7 +554,7 @@ class Settings(commands.Cog):
         await ctx.reply(f"❌ An unexpected error occurred: {error}", mention_author=False)
 
     # ------------------------------------------------------------------
-    # Slash Commands  (registered automatically with the cog)
+    # Slash Commands
     # ------------------------------------------------------------------
     @app_commands.command(name="afk", description="Toggle your global AFK status for pings")
     async def slash_afk(self, interaction: discord.Interaction):
@@ -519,19 +566,19 @@ class Settings(commands.Cog):
         ctx = await commands.Context.from_interaction(interaction)
         await self.server_settings_command(ctx)
 
-    @app_commands.command(name="rare-role", description="Set or clear the rare Pokémon ping role (Admin only)")
+    @app_commands.command(name="role-rare", description="Set or clear the rare Pokémon ping role (Admin only)")
     @app_commands.describe(role="The role to ping for rare Pokémon. Omit to clear.")
     @app_commands.default_permissions(administrator=True)
-    async def slash_rare_role(self, interaction: discord.Interaction, role: discord.Role = None):
+    async def slash_role_rare(self, interaction: discord.Interaction, role: discord.Role = None):
         ctx = await commands.Context.from_interaction(interaction)
-        await self.rare_role_command(ctx, role=role)
+        await self.role_rare_cmd(ctx, role=role)
 
-    @app_commands.command(name="regional-role", description="Set or clear the regional Pokémon ping role (Admin only)")
+    @app_commands.command(name="role-regional", description="Set or clear the regional Pokémon ping role (Admin only)")
     @app_commands.describe(role="The role to ping for regional Pokémon. Omit to clear.")
     @app_commands.default_permissions(administrator=True)
-    async def slash_regional_role(self, interaction: discord.Interaction, role: discord.Role = None):
+    async def slash_role_regional(self, interaction: discord.Interaction, role: discord.Role = None):
         ctx = await commands.Context.from_interaction(interaction)
-        await self.regional_role_command(ctx, role=role)
+        await self.role_regional_cmd(ctx, role=role)
 
     @app_commands.command(name="only-pings", description="Toggle or view only-pings mode (Admin only)")
     @app_commands.describe(enabled="true to enable, false to disable, omit to view current status")
@@ -548,20 +595,18 @@ class Settings(commands.Cog):
         await self.toggle_command(ctx, feature=feature)
 
     @app_commands.command(name="clear-pings", description="Clear all ping data for a user or the entire server (Admin only)")
-    @app_commands.describe(target="@mention or user ID to clear a single user, leave blank to clear all users")
+    @app_commands.describe(target="@mention or user ID to clear a single user; leave blank to clear all users")
     @app_commands.default_permissions(administrator=True)
     async def slash_clear_pings(self, interaction: discord.Interaction, target: str = None):
-        # Permission check
         is_owner     = await self.bot.is_owner(interaction.user)
         is_srv_owner = interaction.user.id == interaction.guild.owner_id
         is_admin     = interaction.user.guild_permissions.administrator
         if not (is_owner or is_srv_owner or is_admin):
             return await interaction.response.send_message(
                 "❌ You need to be the server owner, an administrator, or the bot owner.",
-                ephemeral=True
+                ephemeral=True,
             )
 
-        # Resolve target
         target_id = None
         target_name = None
         if target is not None:
