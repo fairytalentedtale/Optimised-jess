@@ -86,21 +86,28 @@ async def initialize_http_session():
 
 
 async def memory_monitor():
-    """Monitor and log memory usage periodically"""
+    """Monitor and log memory usage every 5 minutes (reduced from every 60 seconds)"""
     await asyncio.sleep(10)
+    
+    last_log_time = 0
+    LOG_INTERVAL = 480  # 5 minutes instead of 60 seconds
 
     while True:
         try:
+            current_time = time.time()
             mem_info = bot.process.memory_info()
             mem_mb = mem_info.rss / 1024 / 1024
 
             models_loaded = bot.predictor and bot.predictor.models_initialized
             model_status = "loaded" if models_loaded else "not loaded"
 
-            print(f"[MEMORY] {mem_mb:.1f} MB | Models: {model_status} | Predictions: {bot.prediction_count}")
+            # Only log every 5 minutes
+            if current_time - last_log_time >= LOG_INTERVAL:
+                print(f"[MEMORY] {mem_mb:.1f} MB | Models: {model_status} | Predictions: {bot.prediction_count}")
+                last_log_time = current_time
 
-            # Run GC early — 320 MB gives headroom before Railway's 500 MB wall
-            if mem_mb > 320:
+            # Run GC early — 460 MB gives headroom before Railway's 500 MB wall
+            if mem_mb > 460:
                 print(f"[MEMORY] ⚠️ High usage ({mem_mb:.1f} MB), forcing GC...")
                 gc.collect()
                 await asyncio.sleep(1)
@@ -111,7 +118,7 @@ async def memory_monitor():
             if bot.db and hasattr(bot.db, 'gcache') and bot.db.gcache:
                 bot.db.gcache.cleanup_expired()
 
-            await asyncio.sleep(60)
+            await asyncio.sleep(60)  # Keep checking every 60 seconds, but log less frequently
 
         except Exception as e:
             print(f"[MEMORY] Monitor error: {e}")
