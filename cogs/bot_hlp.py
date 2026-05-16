@@ -177,6 +177,22 @@ class Help(commands.Cog):
                 inline=False,
             )
             embed.add_field(
+                name=f"`{prefix}force-afk @user <type> <on|off>`",
+                value=(
+                    "Forcefully set a user's AFK state on any ping type  **(Admin only)**\n"
+                    f"**Aliases:** `{prefix}forceafk`, `{prefix}fafk`\n"
+                    f"• `{prefix}force-afk @user all on` — AFK on all 4 types at once\n"
+                    f"• `{prefix}force-afk @user all off` — remove AFK on all 4 types\n"
+                    f"• `{prefix}force-afk @user collection on`\n"
+                    f"• `{prefix}force-afk @user shinyhunt off`\n"
+                    f"• `{prefix}force-afk @user typepings on`\n"
+                    f"• `{prefix}force-afk @user regionpings off`\n"
+                    "Types: `collection` `shinyhunt` `typepings` `regionpings` `all`\n"
+                    "*User can still override with their own `p!afk`*"
+                ),
+                inline=False,
+            )
+            embed.add_field(
                 name="📺 Channel & Role Config",
                 value=(
                     f"See `{prefix}help channels` for channel configuration\n"
@@ -189,21 +205,24 @@ class Help(commands.Cog):
         elif category in ["roles", "role"]:
             embed = discord.Embed(
                 title="🎭 Role Commands",
-                description="Configure ping roles for rare and regional Pokémon.",
+                description=(
+                    "Configure ping roles for rare and regional Pokémon, and manage which roles can use incense and reserve commands.\n"
+                    f"`{prefix}role` shows **all four** role types at a glance."
+                ),
                 color=EMBED_COLOR,
             )
             embed.add_field(
                 name=f"`{prefix}role`",
                 value=(
-                    "Show currently configured roles\n"
+                    "Show all configured roles — Rare, Regional, Incense Allowed, Reserve Allowed\n"
                     f"**Aliases:** `{prefix}roles`"
                 ),
                 inline=False,
             )
             embed.add_field(
-                name=f"`{prefix}role rare [@role]`",
+                name=f"`{prefix}role rare [@role]`  *(Admin)*",
                 value=(
-                    "Set role to ping for rare Pokémon (Legendary / Mythical / Ultra Beast)  **(Admin only)**\n"
+                    "Set role to ping for rare Pokémon (Legendary / Mythical / Ultra Beast)\n"
                     f"**Aliases:** `{prefix}role r`\n"
                     f"• `{prefix}role rare @Rare Hunters` — set the role\n"
                     f"• `{prefix}role rare` (no args) — clear / disable"
@@ -211,9 +230,9 @@ class Help(commands.Cog):
                 inline=False,
             )
             embed.add_field(
-                name=f"`{prefix}role regional [@role]`",
+                name=f"`{prefix}role regional [@role]`  *(Admin)*",
                 value=(
-                    "Set role to ping for regional Pokémon  **(Admin only)**\n"
+                    "Set role to ping for regional Pokémon\n"
                     f"**Aliases:** `{prefix}role reg`\n"
                     f"• `{prefix}role regional @Regionals` — set the role\n"
                     f"• `{prefix}role regional` (no args) — clear / disable"
@@ -221,10 +240,24 @@ class Help(commands.Cog):
                 inline=False,
             )
             embed.add_field(
-                name="🔒 Incense & Reserve Roles",
+                name=f"🔥 `{prefix}inc allowedroles`  *(Manage Server)*",
                 value=(
-                    "Allowed roles for incense pause/resume and reserve add are managed inside those commands:\n"
-                    f"`{prefix}inc allowedroles` • `{prefix}r allowedroles`"
+                    "Manage which roles can use incense pause/resume commands\n"
+                    f"• `{prefix}inc allowedroles` / `{prefix}inc ar` — list current roles\n"
+                    f"• `{prefix}inc allowedroles add @Role` — add a role\n"
+                    f"• `{prefix}inc allowedroles remove @Role` — remove a role\n"
+                    f"• `{prefix}inc allowedroles clear` — remove all"
+                ),
+                inline=False,
+            )
+            embed.add_field(
+                name=f"📌 `{prefix}r allowedroles`  *(Admin)*",
+                value=(
+                    "Manage which roles can use reserve commands\n"
+                    f"• `{prefix}r allowedroles` / `{prefix}r ar` — list current roles\n"
+                    f"• `{prefix}r allowedroles add @Role` — add a role\n"
+                    f"• `{prefix}r allowedroles remove @Role` — remove a role\n"
+                    f"• `{prefix}r allowedroles clear` — remove all"
                 ),
                 inline=False,
             )
@@ -629,13 +662,17 @@ class Help(commands.Cog):
                 name="⚙️ Settings",
                 value=(
                     f"`{prefix}afk` • `{prefix}server-settings` • `{prefix}clear-pings [@user]`\n"
-                    f"**Admin:** `{prefix}toggle <feature>` • `{prefix}only-pings`"
+                    f"**Admin:** `{prefix}toggle <feature>` • `{prefix}only-pings` • `{prefix}force-afk @user <type> <on|off>`"
                 ),
                 inline=False,
             )
             embed.add_field(
                 name="🎭 Roles  *(Admin)*",
-                value=f"`{prefix}role` • `{prefix}role rare [@role]` • `{prefix}role regional [@role]`",
+                value=(
+                    f"`{prefix}role` — view all configured roles\n"
+                    f"`{prefix}role rare [@role]` • `{prefix}role regional [@role]`\n"
+                    f"`{prefix}inc allowedroles add/remove/clear @Role` • `{prefix}r allowedroles add/remove/clear @Role`"
+                ),
                 inline=False,
             )
             embed.add_field(
