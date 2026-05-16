@@ -193,7 +193,8 @@ class GuildCache:
     async def get_rare_collectors(self, guild_id: int, afk_set: set) -> list:
         entry = self._rare_collectors.get(guild_id)
         if not entry or not entry.is_valid():
-            raw = await self._db.get_rare_collectors(guild_id)
+            # Pass empty set — AFK filtering is done below using the cached afk_set
+            raw = await self._db.get_rare_collectors(guild_id, set())
             self._rare_collectors[guild_id] = _TTLEntry(raw, self.TTL_RARE)
             entry = self._rare_collectors[guild_id]
         return [uid for uid in entry.value if uid not in afk_set]
@@ -204,19 +205,20 @@ class GuildCache:
     # -----------------------------------------------------------------------
     # Collectors (by type combo)
     # -----------------------------------------------------------------------
-    async def get_collectors(self, guild_id: int, types: list, afk_set: set) -> list:
-        if not types:
+    async def get_collectors(self, guild_id: int, pokemon_names: list, afk_set: set) -> list:
+        if not pokemon_names:
             return []
-        key = (guild_id, tuple(sorted(types)))
+        key = ("collectors", guild_id, tuple(sorted(pokemon_names)))
         entry = self._collectors.get(key)
         if not entry or not entry.is_valid():
-            raw = await self._db.get_users_for_types(guild_id, types, set())
+            # Use the collection lookup — matches pokemon names against users' saved collections
+            raw = await self._db.get_collectors_for_pokemon(guild_id, pokemon_names, set())
             self._collectors[key] = _TTLEntry(raw, self.TTL_COLLECTORS)
             entry = self._collectors[key]
         return [uid for uid in entry.value if uid not in afk_set]
 
     def invalidate_collectors(self, guild_id: int):
-        to_del = [k for k in self._collectors if k[0] == guild_id]
+        to_del = [k for k in self._collectors if k[1] == guild_id]
         for k in to_del:
             del self._collectors[k]
 
