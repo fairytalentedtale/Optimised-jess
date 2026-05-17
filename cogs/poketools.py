@@ -683,28 +683,6 @@ class PokeTools(commands.Cog, name="PokeTools"):
 
             await ctx.send(embed=_build_date_embed(oid, dt))
 
-    @app_commands.context_menu(name="Get Caught Date")
-    async def date_context_menu(self, interaction: discord.Interaction, message: discord.Message):
-        """Right-click a Pokétwo embed to extract the caught date from its ObjectID."""
-        await interaction.response.defer(ephemeral=True)
-
-        oid = _extract_objectid_from_embed(message)
-        if not oid:
-            await interaction.followup.send(
-                "❌ This message has no Pokétwo ObjectID in its embed footer.\n"
-                "Make sure you right-click a Pokétwo `p!info` / `p!pokemon` embed.",
-                ephemeral=True,
-            )
-            return
-
-        try:
-            dt = _objectid_to_datetime(oid)
-        except (ValueError, OverflowError) as e:
-            await interaction.followup.send(f"❌ Invalid ObjectID `{oid}`: {e}", ephemeral=True)
-            return
-
-        await interaction.followup.send(embed=_build_date_embed(oid, dt), ephemeral=True)
-
     # ================================================================ #
     #  Owner utilities                                                   #
     # ================================================================ #
@@ -728,8 +706,29 @@ class PokeTools(commands.Cog, name="PokeTools"):
         await ctx.send(embed=embed)
 
 
+@app_commands.context_menu(name="Get Caught Date")
+async def date_context_menu(interaction: discord.Interaction, message: discord.Message):
+    """Right-click a Pokétwo embed to extract the caught date from its ObjectID."""
+    await interaction.response.defer(ephemeral=True)
+
+    oid = _extract_objectid_from_embed(message)
+    if not oid:
+        await interaction.followup.send(
+            "❌ This message has no Pokétwo ObjectID in its embed footer.\n"
+            "Make sure you right-click a Pokétwo `p!info` / `p!pokemon` embed.",
+            ephemeral=True,
+        )
+        return
+
+    try:
+        dt = _objectid_to_datetime(oid)
+    except (ValueError, OverflowError) as e:
+        await interaction.followup.send(f"❌ Invalid ObjectID `{oid}`: {e}", ephemeral=True)
+        return
+
+    await interaction.followup.send(embed=_build_date_embed(oid, dt), ephemeral=True)
+
+
 async def setup(bot: commands.Bot):
-    cog = PokeTools(bot)
-    await bot.add_cog(cog)
-    # Register the context menu command so Discord sees it as a top-level app command
-    bot.tree.add_command(cog.date_context_menu)
+    await bot.add_cog(PokeTools(bot))
+    bot.tree.add_command(date_context_menu)
