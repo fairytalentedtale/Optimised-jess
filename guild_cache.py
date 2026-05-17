@@ -203,24 +203,45 @@ class GuildCache:
         self._rare_collectors.pop(guild_id, None)
 
     # -----------------------------------------------------------------------
-    # Collectors (by type combo)
+    # Collectors — all docs for a guild cached together, filtered in Python.
+    # Same pattern as reserves: one DB fetch per guild per TTL window,
+    # regardless of how many unique Pokémon spawn during that window.
     # -----------------------------------------------------------------------
+    async def _get_raw_collectors(self, guild_id: int) -> list:
+        """Fetch and cache ALL collection docs for the guild in one query."""
+        entry = self._collectors.get(guild_id)
+        if entry and entry.is_valid():
+            return entry.value
+
+        async with self._guild_lock(guild_id):
+            entry = self._collectors.get(guild_id)
+            if entry and entry.is_valid():
+                return entry.value
+            raw = await self._db.db.collections.find(
+                {"guild_id": guild_id},
+                {"user_id": 1, "pokemon": 1}
+            ).to_list(length=None)
+            self._collectors[guild_id] = _TTLEntry(raw, self.TTL_COLLECTORS)
+            return raw
+
     async def get_collectors(self, guild_id: int, pokemon_names: list, afk_set: set) -> list:
         if not pokemon_names:
             return []
-        key = ("collectors", guild_id, tuple(sorted(pokemon_names)))
-        entry = self._collectors.get(key)
-        if not entry or not entry.is_valid():
-            # Use the collection lookup — matches pokemon names against users' saved collections
-            raw = await self._db.get_collectors_for_pokemon(guild_id, pokemon_names, set())
-            self._collectors[key] = _TTLEntry(raw, self.TTL_COLLECTORS)
-            entry = self._collectors[key]
-        return [uid for uid in entry.value if uid not in afk_set]
+        raw = await self._get_raw_collectors(guild_id)
+        names_set = set(pokemon_names)
+        result = []
+        seen = set()
+        for doc in raw:
+            uid = doc["user_id"]
+            if uid in seen or uid in afk_set:
+                continue
+            if any(p in names_set for p in doc.get("pokemon", [])):
+                result.append(uid)
+                seen.add(uid)
+        return result
 
     def invalidate_collectors(self, guild_id: int):
-        to_del = [k for k in self._collectors if k[1] == guild_id]
-        for k in to_del:
-            del self._collectors[k]
+        self._collectors.pop(guild_id, None)
 
     # -----------------------------------------------------------------------
     # Type pingers
@@ -363,9 +384,9 @@ class GuildCache:
         shrinks dicts automatically.
 
         Also enforces MAX_CACHE_SIZE on the high-cardinality tuple-key dicts
-        (_collectors, _type_pingers, _region_pingers) using oldest-entry
-        eviction, so they can never grow unboundedly during a long session
-        with many unique (guild_id, type_combo) keys.
+        (_type_pingers, _region_pingers) using oldest-entry eviction.
+        _collectors is now keyed by guild_id (one entry per guild) so it
+        no longer needs a size cap.
 
         OPTIMIZED: Only logs if significant cleanup occurs (> 5 entries removed)
         """
@@ -389,10 +410,10 @@ class GuildCache:
                 del d[k]
             total_removed += len(expired)
 
-        # Hard size cap on high-cardinality tuple-key caches.
-        # If still over MAX_CACHE_SIZE after TTL cleanup, evict the entries
-        # with the oldest expires_at (soonest-expiring = least useful).
-        for d in (self._collectors, self._type_pingers, self._region_pingers):
+        # Hard size cap on high-cardinality tuple-key caches (_type_pingers,
+        # _region_pingers). _collectors is now keyed by guild_id so it can
+        # never grow unboundedly — one entry per guild, cleaned by TTL above.
+        for d in (self._type_pingers, self._region_pingers):
             if len(d) > self.MAX_CACHE_SIZE:
                 overage = len(d) - self.MAX_CACHE_SIZE
                 # Sort by expiry ascending — remove the entries closest to expiring
