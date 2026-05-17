@@ -476,6 +476,26 @@ class Help(commands.Cog):
                 inline=False,
             )
             embed.add_field(
+                name=f"`{prefix}date` / `{prefix}caught` / `{prefix}catchdate`",
+                value=(
+                    "Show when a Pokémon was caught from its Pokétwo ObjectID\n"
+                    f"• Reply to a Pokétwo `p!info` embed + `{prefix}date` — reads ObjectID from footer automatically\n"
+                    f"• `{prefix}date <objectid>` — provide the ObjectID directly\n"
+                    "Also available as `/date` and the **Get Caught Date** right-click context menu"
+                ),
+                inline=False,
+            )
+            embed.add_field(
+                name=f"`{prefix}extractids` / `{prefix}extract` / `{prefix}eids`",
+                value=(
+                    "Extract all Pokémon / listing IDs from a Pokétwo embed, space-separated\n"
+                    f"• Reply to a Pokétwo `p!pokemon` or marketplace embed + `{prefix}extractids`\n"
+                    f"• `{prefix}extractids <message_id>` — provide the message ID directly\n"
+                    "Also available as `/extractids` and the **Extract IDs** right-click context menu"
+                ),
+                inline=False,
+            )
+            embed.add_field(
                 name="🔎 Hint Solver (Automatic)",
                 value=(
                     "When Pokétwo sends a hint the bot automatically replies with matching Pokémon name(s).\n"
@@ -703,6 +723,8 @@ class Help(commands.Cog):
                 value=(
                     f"`{prefix}sr <pokemon>` • `{prefix}shr [chain] [target%]`\n"
                     f"`{prefix}td` • `{prefix}td <id>` • `{prefix}td <id1> <id2>` — time difference between messages\n"
+                    f"`{prefix}date [objectid]` / `{prefix}caught` — Pokémon caught date from ObjectID  •  **Right-click:** Get Caught Date\n"
+                    f"`{prefix}extractids [msg_id]` / `{prefix}eids` — extract IDs from Pokétwo embed  •  **Right-click:** Extract IDs\n"
                     "Hint solver (automatic — no command needed)"
                 ),
                 inline=False,
