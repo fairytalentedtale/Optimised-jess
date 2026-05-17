@@ -465,6 +465,17 @@ class Help(commands.Cog):
                 inline=False,
             )
             embed.add_field(
+                name=f"`{prefix}timedifference` / `{prefix}timediff` / `{prefix}td`",
+                value=(
+                    "Find the time difference between two messages in seconds and milliseconds\n"
+                    f"• Reply to a message + `{prefix}td` — compares it with the message above it\n"
+                    f"• `{prefix}td <id>` — compares that message with the one above it\n"
+                    f"• `{prefix}td <id1> <id2>` — compares two messages directly\n"
+                    "Also available as `/timedifference`"
+                ),
+                inline=False,
+            )
+            embed.add_field(
                 name="🔎 Hint Solver (Automatic)",
                 value=(
                     "When Pokétwo sends a hint the bot automatically replies with matching Pokémon name(s).\n"
@@ -689,7 +700,11 @@ class Help(commands.Cog):
             embed.add_field(name="🔮 Prediction",     value=f"`{prefix}predict`",                                                              inline=False)
             embed.add_field(
                 name="🔍 Helpful",
-                value=f"`{prefix}sr <pokemon>` • `{prefix}shr [chain] [target%]`\nHint solver (automatic — no command needed)",
+                value=(
+                    f"`{prefix}sr <pokemon>` • `{prefix}shr [chain] [target%]`\n"
+                    f"`{prefix}td` • `{prefix}td <id>` • `{prefix}td <id1> <id2>` — time difference between messages\n"
+                    "Hint solver (automatic — no command needed)"
+                ),
                 inline=False,
             )
             embed.add_field(
