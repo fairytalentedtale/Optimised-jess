@@ -82,7 +82,7 @@ class Help(commands.Cog):
                 name="💡 How It Works",
                 value=(
                     "• When a Pokémon you collect spawns, you get pinged\n"
-                    "• `Furfrou all` adds every Furfrou variant explicitly"
+                    "• Use cl add `Furfrou all` to add every Furfrou variant explicitly as adding only furfrou pings for furfrou only"
                 ),
                 inline=False,
             )
