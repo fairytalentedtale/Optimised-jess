@@ -79,6 +79,10 @@ class GuildCache:
     TTL_RESERVES   = 20   # reserves (can change during session)
     TTL_RESERVE_ROLES = 60  # reserve allowed roles (rarely change)
 
+    # Hard cap per high-cardinality dict — prevents unbounded growth during
+    # massive incense sessions with many unique (guild_id, type_combo) keys.
+    MAX_CACHE_SIZE = 5000
+
     def __init__(self, db):
         self._db = db
 
@@ -184,38 +188,60 @@ class GuildCache:
         self._shiny_hunts.pop(guild_id, None)
 
     # -----------------------------------------------------------------------
-    # Collectors
-    # -----------------------------------------------------------------------
-    async def get_collectors(self, guild_id: int, pokemon_names: list, afk_set: set) -> list:
-        key = (guild_id, tuple(sorted(pokemon_names)))
-        entry = self._collectors.get(key)
-        if not entry or not entry.is_valid():
-            raw = await self._db.get_collectors_for_pokemon(guild_id, pokemon_names, [])
-            self._collectors[key] = _TTLEntry(raw, self.TTL_COLLECTORS)
-            entry = self._collectors[key]
-        return [uid for uid in entry.value if uid not in afk_set]
-
-    def invalidate_collectors(self, guild_id: int):
-        to_del = [k for k in self._collectors if k[0] == guild_id]
-        for k in to_del:
-            del self._collectors[k]
-
-    # -----------------------------------------------------------------------
     # Rare collectors
     # -----------------------------------------------------------------------
     async def get_rare_collectors(self, guild_id: int, afk_set: set) -> list:
         entry = self._rare_collectors.get(guild_id)
         if not entry or not entry.is_valid():
-            async with self._guild_lock(guild_id):
-                entry = self._rare_collectors.get(guild_id)
-                if not entry or not entry.is_valid():
-                    raw = await self._db.get_rare_collectors(guild_id, [])
-                    self._rare_collectors[guild_id] = _TTLEntry(raw, self.TTL_RARE)
-                    entry = self._rare_collectors[guild_id]
+            # Pass empty set — AFK filtering is done below using the cached afk_set
+            raw = await self._db.get_rare_collectors(guild_id, set())
+            self._rare_collectors[guild_id] = _TTLEntry(raw, self.TTL_RARE)
+            entry = self._rare_collectors[guild_id]
         return [uid for uid in entry.value if uid not in afk_set]
 
     def invalidate_rare_collectors(self, guild_id: int):
         self._rare_collectors.pop(guild_id, None)
+
+    # -----------------------------------------------------------------------
+    # Collectors — all docs for a guild cached together, filtered in Python.
+    # Same pattern as reserves: one DB fetch per guild per TTL window,
+    # regardless of how many unique Pokémon spawn during that window.
+    # -----------------------------------------------------------------------
+    async def _get_raw_collectors(self, guild_id: int) -> list:
+        """Fetch and cache ALL collection docs for the guild in one query."""
+        entry = self._collectors.get(guild_id)
+        if entry and entry.is_valid():
+            return entry.value
+
+        async with self._guild_lock(guild_id):
+            entry = self._collectors.get(guild_id)
+            if entry and entry.is_valid():
+                return entry.value
+            raw = await self._db.db.collections.find(
+                {"guild_id": guild_id},
+                {"user_id": 1, "pokemon": 1}
+            ).to_list(length=None)
+            self._collectors[guild_id] = _TTLEntry(raw, self.TTL_COLLECTORS)
+            return raw
+
+    async def get_collectors(self, guild_id: int, pokemon_names: list, afk_set: set) -> list:
+        if not pokemon_names:
+            return []
+        raw = await self._get_raw_collectors(guild_id)
+        names_set = set(pokemon_names)
+        result = []
+        seen = set()
+        for doc in raw:
+            uid = doc["user_id"]
+            if uid in seen or uid in afk_set:
+                continue
+            if any(p in names_set for p in doc.get("pokemon", [])):
+                result.append(uid)
+                seen.add(uid)
+        return result
+
+    def invalidate_collectors(self, guild_id: int):
+        self._collectors.pop(guild_id, None)
 
     # -----------------------------------------------------------------------
     # Type pingers
@@ -317,6 +343,100 @@ class GuildCache:
 
     def invalidate_reserve_roles(self, guild_id: int):
         self._reserve_roles.pop(guild_id, None)
+
+    # -----------------------------------------------------------------------
+    # Incense settings  (enabled flag + categories + paused channels)
+    # Cached so incense.py on_message doesn't hit DB on every spawn
+    # -----------------------------------------------------------------------
+    TTL_INCENSE = 30  # seconds
+
+    async def get_incense_settings(self, guild_id: int) -> dict:
+        """Return the raw incense guild doc (or {}) from cache or DB."""
+        if not hasattr(self, '_incense_settings'):
+            self._incense_settings: dict = {}
+        entry = self._incense_settings.get(guild_id)
+        if entry and entry.is_valid():
+            return entry.value
+        async with self._guild_lock(guild_id):
+            entry = self._incense_settings.get(guild_id)
+            if entry and entry.is_valid():
+                return entry.value
+            doc = await self._db.db.user_data.find_one(
+                {"user_id": f"incense_guild_{guild_id}"}
+            ) or {}
+            self._incense_settings[guild_id] = _TTLEntry(doc, self.TTL_INCENSE)
+            return doc
+
+    def invalidate_incense_settings(self, guild_id: int):
+        """Call whenever incense settings are saved for a guild."""
+        if hasattr(self, '_incense_settings'):
+            self._incense_settings.pop(guild_id, None)
+
+    # -----------------------------------------------------------------------
+    # Cleanup — removes expired keys from all cache dicts to prevent bloat.
+    # Call from memory_monitor every 60 s.
+    # Only logs when significant cleanup occurs (more than 5 entries removed)
+    # -----------------------------------------------------------------------
+    def cleanup_expired(self):
+        """
+        Evict entries whose TTL has elapsed from every per-guild dict.
+        Without this, dead keys accumulate forever because Python never
+        shrinks dicts automatically.
+
+        Also enforces MAX_CACHE_SIZE on the high-cardinality tuple-key dicts
+        (_type_pingers, _region_pingers) using oldest-entry eviction.
+        _collectors is now keyed by guild_id (one entry per guild) so it
+        no longer needs a size cap.
+
+        OPTIMIZED: Only logs if significant cleanup occurs (> 5 entries removed)
+        """
+        dicts_to_clean = [
+            self._guild_settings,
+            self._shiny_hunts,
+            self._rare_collectors,
+            self._collectors,
+            self._type_pingers,
+            self._region_pingers,
+            self._reserves,
+            self._reserve_roles,
+        ]
+        if hasattr(self, '_incense_settings'):
+            dicts_to_clean.append(self._incense_settings)
+
+        total_removed = 0
+        for d in dicts_to_clean:
+            expired = [k for k, v in d.items() if not v.is_valid()]
+            for k in expired:
+                del d[k]
+            total_removed += len(expired)
+
+        # Hard size cap on high-cardinality tuple-key caches (_type_pingers,
+        # _region_pingers). _collectors is now keyed by guild_id so it can
+        # never grow unboundedly — one entry per guild, cleaned by TTL above.
+        for d in (self._type_pingers, self._region_pingers):
+            if len(d) > self.MAX_CACHE_SIZE:
+                overage = len(d) - self.MAX_CACHE_SIZE
+                # Sort by expiry ascending — remove the entries closest to expiring
+                oldest_keys = sorted(d.keys(), key=lambda k: d[k].expires_at)[:overage]
+                for k in oldest_keys:
+                    del d[k]
+                total_removed += overage
+                print(f"[GUILD_CACHE] Size cap: evicted {overage} oldest entries")
+
+        # Also shrink the guild_locks dict — remove locks for guilds no
+        # longer in any cache (avoids keeping asyncio.Lock objects forever)
+        active_guilds: set = set()
+        for d in dicts_to_clean:
+            for k in d:
+                gid = k[0] if isinstance(k, tuple) else k
+                active_guilds.add(gid)
+        stale_locks = [g for g in self._guild_locks if g not in active_guilds]
+        for g in stale_locks:
+            del self._guild_locks[g]
+
+        # Only log if significant cleanup (more than 5 entries removed)
+        if total_removed > 5:
+            print(f"[GUILD_CACHE] cleanup_expired: removed {total_removed} stale entries")
 
     # -----------------------------------------------------------------------
     # Warm-up — call on !loadmodel

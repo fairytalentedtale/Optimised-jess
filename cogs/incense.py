@@ -28,6 +28,10 @@ async def _save_guild_doc(db, guild_id: int, data: dict):
         {"$set": data},
         upsert=True
     )
+    # Invalidate cached incense settings so next on_message re-fetches
+    gcache = getattr(db, 'gcache', None)
+    if gcache:
+        gcache.invalidate_incense_settings(guild_id)
 
 async def _get_enabled(db, guild_id: int) -> bool:
     doc = await _get_guild_doc(db, guild_id)
@@ -284,7 +288,7 @@ class IncenseListView(discord.ui.View):
         active_total: int,
         author_id: int,
     ):
-        super().__init__(timeout=120)
+        super().__init__(timeout=60)  # reduced from 120
         self.paused_pages = paused_pages
         self.active_pages = active_pages
         self.paused_total = paused_total
@@ -292,6 +296,7 @@ class IncenseListView(discord.ui.View):
         self.author_id = author_id
         self.showing_paused = True
         self.current = 0
+        self.message: discord.Message | None = None
         self._inject_summary()
         self._update_buttons()
 
@@ -364,13 +369,15 @@ class IncenseListView(discord.ui.View):
         await interaction.response.edit_message(embed=pages[self.current], view=self)
 
     async def on_timeout(self):
-        for item in self.children:
-            item.disabled = True
-
-
-# ─────────────────────────────────────────────
-#  The Cog
-# ─────────────────────────────────────────────
+        self.clear_items()
+        if self.message:
+            try:
+                await self.message.edit(view=self)
+            except discord.HTTPException:
+                pass
+        self.message = None
+        self.paused_pages = []  # release embed objects from memory
+        self.active_pages = []
 
 class Incense(commands.Cog):
     """
@@ -425,10 +432,21 @@ class Incense(commands.Cog):
             )
             await ctx.send(embed=embed, reference=ctx.message, mention_author=False)
             return
+        if isinstance(error, commands.MissingRequiredArgument):
+            embed = discord.Embed(
+                description=f"❌ Missing required argument: `{error.param.name}`.\nUse `{config.BOT_PREFIX[0]}inc help` to see command usage.",
+                color=config.EMBED_COLOR
+            )
+            await ctx.send(embed=embed, reference=ctx.message, mention_author=False)
+            return
         # Re-raise anything else so the global error handler still sees it
         raise error
 
     # ── listener ─────────────────────────────
+
+    def _get_gcache(self):
+        """Return GuildCache if available (attached by prediction cog on startup)."""
+        return getattr(self.db, 'gcache', None)
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
@@ -438,16 +456,33 @@ class Incense(commands.Cog):
             return
         if not isinstance(message.channel, discord.TextChannel):
             return
-        if not await _get_enabled(self.db, message.guild.id):
+
+        guild_id = message.guild.id
+        gcache = self._get_gcache()
+
+        if gcache:
+            # Single cached doc — 0 DB queries on cache hit (TTL=30s)
+            doc = await gcache.get_incense_settings(guild_id)
+        else:
+            doc = await _get_guild_doc(self.db, guild_id)
+
+        if not doc.get("incense_enabled", True):
             return
-        if not await self._channel_in_monitored_category(message.channel):
+
+        monitored_cats = doc.get("incense_categories", [])
+        if message.channel.category_id not in monitored_cats:
             return
-        if await self._is_paused(message.channel):
+
+        paused = doc.get("incense_paused_channels", [])
+        if message.channel.id in paused:
             return
 
         content = message.content or ""
         if INCENSE_PATTERN.search(content):
             await self._pause_channel(message.channel)
+            # Invalidate cache so next on_message sees the updated paused list
+            if gcache:
+                gcache.invalidate_incense_settings(guild_id)
             try:
                 await message.channel.send(
                     f"Incense purchased! Poketwo has been restricted in this channel. "
@@ -843,12 +878,23 @@ class Incense(commands.Cog):
 
     @inc_prefix_cat.command(name="add")
     @commands.has_permissions(manage_guild=True)
-    async def inc_prefix_cat_add(self, ctx: commands.Context, *, raw: str):
+    async def inc_prefix_cat_add(self, ctx: commands.Context, *, raw: str = None):
         """
         Add one or more categories to monitor.
         Usage:  inc cat add SPAWN1 SPAWN2
                 inc cat add "Incense 1" "Incense 2"
         """
+        if not raw:
+            p = config.BOT_PREFIX[0]
+            embed = discord.Embed(
+                description=(
+                    f"❌ Please provide at least one category name or ID.\n"
+                    f"**Usage:** `{p}inc cat add SPAWN1 SPAWN2`\n"
+                    f"Names with spaces: `{p}inc cat add \"Incense 1\" \"Incense 2\"`"
+                ),
+                color=config.EMBED_COLOR
+            )
+            return await ctx.send(embed=embed, reference=ctx.message, mention_author=False)
         names = _parse_category_names(raw)
         cats = await _get_categories(self.db, ctx.guild.id)
 
@@ -885,12 +931,23 @@ class Incense(commands.Cog):
 
     @inc_prefix_cat.command(name="remove")
     @commands.has_permissions(manage_guild=True)
-    async def inc_prefix_cat_remove(self, ctx: commands.Context, *, raw: str):
+    async def inc_prefix_cat_remove(self, ctx: commands.Context, *, raw: str = None):
         """
         Remove one or more categories from monitoring.
         Usage:  inc cat remove SPAWN1
                 inc cat remove "Incense 1" "Incense 2"
         """
+        if not raw:
+            p = config.BOT_PREFIX[0]
+            embed = discord.Embed(
+                description=(
+                    f"❌ Please provide at least one category name or ID.\n"
+                    f"**Usage:** `{p}inc cat remove SPAWN1`\n"
+                    f"Names with spaces: `{p}inc cat remove \"Incense 1\"`"
+                ),
+                color=config.EMBED_COLOR
+            )
+            return await ctx.send(embed=embed, reference=ctx.message, mention_author=False)
         names = _parse_category_names(raw)
         cats = await _get_categories(self.db, ctx.guild.id)
 
@@ -968,19 +1025,29 @@ class Incense(commands.Cog):
 
     @inc_prefix_allowedroles.command(name="add")
     @commands.has_permissions(manage_guild=True)
-    async def inc_prefix_allowedroles_add(self, ctx: commands.Context, *, raw: str):
+    async def inc_prefix_allowedroles_add(self, ctx: commands.Context, *, raw: str = None):
         """
         Add one or more roles (by mention or ID) to the allowed list.
         Usage:  inc allowedroles add @Role1 @Role2
                 inc allowedroles add 123456789
         """
+        if not raw and not ctx.message.role_mentions:
+            p = config.BOT_PREFIX[0]
+            embed = discord.Embed(
+                description=(
+                    f"❌ Please mention a role or provide a role ID.\n"
+                    f"**Usage:** `{p}inc allowedroles add @Role`"
+                ),
+                color=config.EMBED_COLOR
+            )
+            return await ctx.send(embed=embed, reference=ctx.message, mention_author=False)
         # Collect role IDs from mentions and raw IDs
         allowed = await _get_allowed_roles(self.db, ctx.guild.id)
         added, skipped = [], []
 
         candidates = [r.id for r in ctx.message.role_mentions]
         if not candidates:
-            for token in raw.split():
+            for token in (raw or "").split():
                 token = token.strip("<@&>")
                 if token.isdigit():
                     candidates.append(int(token))
@@ -1017,7 +1084,7 @@ class Incense(commands.Cog):
 
     @inc_prefix_allowedroles.command(name="remove")
     @commands.has_permissions(manage_guild=True)
-    async def inc_prefix_allowedroles_remove(self, ctx: commands.Context, *, raw: str):
+    async def inc_prefix_allowedroles_remove(self, ctx: commands.Context, *, raw: str = None):
         """
         Remove one or more roles from the allowed list.
         Usage:  inc allowedroles remove @Role
@@ -1028,7 +1095,7 @@ class Incense(commands.Cog):
 
         candidates = [r.id for r in ctx.message.role_mentions]
         if not candidates:
-            for token in raw.split():
+            for token in (raw or "").split():
                 token = token.strip("<@&>")
                 if token.isdigit():
                     candidates.append(int(token))
@@ -1254,7 +1321,8 @@ class Incense(commands.Cog):
             view.showing_paused = False
             view._update_buttons()
 
-        await ctx.send(embed=view.current_pages[0], view=view, reference=ctx.message, mention_author=False)
+        msg = await ctx.send(embed=view.current_pages[0], view=view, reference=ctx.message, mention_author=False)
+        view.message = msg
 
     # ── help ─────────────────────────────────
 

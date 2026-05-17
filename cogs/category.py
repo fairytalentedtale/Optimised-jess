@@ -18,12 +18,13 @@ from default_cats import DEFAULT_CATEGORIES
 # ---------------------------------------------------------------------------
 class CategoryPaginationView(discord.ui.View):
     def __init__(self, user_id, category_name, pokemon_list, current_page, total_pages):
-        super().__init__(timeout=300)
+        super().__init__(timeout=60)
         self.user_id = user_id
         self.category_name = category_name
         self.pokemon_list = pokemon_list
         self.current_page = current_page
         self.total_pages = total_pages
+        self.message = None
 
         self.previous_button.disabled = (current_page <= 1)
         self.next_button.disabled = (current_page >= total_pages)
@@ -45,6 +46,16 @@ class CategoryPaginationView(discord.ui.View):
             )
         )
         return embed
+
+    async def on_timeout(self):
+        self.clear_items()
+        if self.message:
+            try:
+                await self.message.edit(view=self)
+            except discord.HTTPException:
+                pass
+        self.message = None
+        self.pokemon_list = []
 
     @discord.ui.button(label="", emoji="◀️", style=discord.ButtonStyle.primary)
     async def previous_button(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -80,10 +91,11 @@ class DefaultCategoryListView(discord.ui.View):
     """
 
     def __init__(self, cog: "Category", ctx: commands.Context, existing_names: set[str]):
-        super().__init__(timeout=180)
+        super().__init__(timeout=60)
         self.cog = cog
         self.ctx = ctx
-        self.existing_names = existing_names  # category labels already on this guild
+        self.existing_names = existing_names
+        self.message = None
 
         for key, meta in DEFAULT_CATEGORIES.items():
             label = meta["label"]
@@ -103,7 +115,6 @@ class DefaultCategoryListView(discord.ui.View):
             if interaction.user.id != self.ctx.author.id:
                 await interaction.response.send_message("This menu isn't for you!", ephemeral=True)
                 return
-            # Hand off to the preview stage — edits this same message
             preview = DefaultCategoryPreviewView(
                 cog=self.cog,
                 ctx=self.ctx,
@@ -116,7 +127,17 @@ class DefaultCategoryListView(discord.ui.View):
             )
         return callback
 
-    # ------------------------------------------------------------------
+    async def on_timeout(self):
+        self.clear_items()
+        if self.message:
+            try:
+                await self.message.edit(view=self)
+            except discord.HTTPException:
+                pass
+        self.message = None
+        self.cog = None
+        self.ctx = None
+
     @staticmethod
     def build_list_embed(existing_names: set[str]) -> discord.Embed:
         lines = []
@@ -139,7 +160,8 @@ class DefaultCategoryListView(discord.ui.View):
         guild_cats = await cog.db.get_all_categories(ctx.guild.id)
         existing_names = {c["name"] for c in guild_cats}
         view = cls(cog, ctx, existing_names)
-        await ctx.reply(embed=cls.build_list_embed(existing_names), view=view, mention_author=False)
+        message = await ctx.reply(embed=cls.build_list_embed(existing_names), view=view, mention_author=False)
+        view.message = message
 
 
 # ---------------------------------------------------------------------------
@@ -162,7 +184,7 @@ class DefaultCategoryPreviewView(discord.ui.View):
         key: str,
         existing_names: set[str],
     ):
-        super().__init__(timeout=180)
+        super().__init__(timeout=60)
         self.cog = cog
         self.ctx = ctx
         self.key = key
@@ -175,7 +197,6 @@ class DefaultCategoryPreviewView(discord.ui.View):
 
         self._refresh_buttons()
 
-    # ------------------------------------------------------------------
     def _refresh_buttons(self):
         self.clear_items()
 
@@ -230,7 +251,6 @@ class DefaultCategoryPreviewView(discord.ui.View):
         self.add_item(back_btn)
         self.add_item(confirm_btn)
 
-    # ------------------------------------------------------------------
     def build_embed(self, page: int) -> discord.Embed:
         start = (page - 1) * DEFAULTS_PREVIEW_PAGE_SIZE
         end = start + DEFAULTS_PREVIEW_PAGE_SIZE
@@ -257,7 +277,11 @@ class DefaultCategoryPreviewView(discord.ui.View):
         )
         return embed
 
-    # ------------------------------------------------------------------
+    async def on_timeout(self):
+        self.clear_items()
+        self.cog = None
+        self.ctx = None
+
     async def _check(self, interaction: discord.Interaction) -> bool:
         if interaction.user.id != self.ctx.author.id:
             await interaction.response.send_message("This menu isn't for you!", ephemeral=True)
@@ -281,7 +305,6 @@ class DefaultCategoryPreviewView(discord.ui.View):
     async def _go_back(self, interaction: discord.Interaction):
         if not await self._check(interaction):
             return
-        # Rebuild the list view so its existing_names stays accurate
         guild_cats = await self.cog.db.get_all_categories(interaction.guild.id)
         existing_names = {c["name"] for c in guild_cats}
         list_view = DefaultCategoryListView(self.cog, self.ctx, existing_names)
@@ -298,8 +321,6 @@ class DefaultCategoryPreviewView(discord.ui.View):
         cat_name = meta["label"]
         pokemon = meta["pokemon"]
 
-        # Always do a live DB check — is_override may be stale if the category
-        # was added between the view being built and the button being pressed.
         existing = await self.cog.db.get_category(interaction.guild.id, cat_name)
         if existing:
             await self.cog.db.update_category(interaction.guild.id, cat_name, pokemon)
@@ -308,7 +329,6 @@ class DefaultCategoryPreviewView(discord.ui.View):
             await self.cog.db.create_category(interaction.guild.id, cat_name, pokemon)
             verb = "added"
 
-        # Rebuild list view with fresh DB state
         guild_cats = await self.cog.db.get_all_categories(interaction.guild.id)
         existing_names = {c["name"] for c in guild_cats}
         list_view = DefaultCategoryListView(self.cog, self.ctx, existing_names)
@@ -386,21 +406,12 @@ class Category(commands.Cog):
             )
 
     # ------------------------------------------------------------------
-    # p!cat defaults — browse and import built-in categories
+    # p!cat defaults
     # ------------------------------------------------------------------
     @category_group.command(name="defaults", aliases=["default", "builtin"])
     @commands.has_permissions(administrator=True)
     async def category_defaults(self, ctx):
-        """Browse built-in categories and add them to this server (Admin only).
-
-        Shows all default categories (rare, regional, gigantamax) in an
-        interactive browser. Press a tab to preview it, then hit
-        "Add to Server" to import it. If the category already exists you'll
-        be asked to confirm before overriding.
-
-        Example:
-            p!cat defaults
-        """
+        """Browse built-in categories and add them to this server (Admin only)."""
         await DefaultCategoryListView.send(cog=self, ctx=ctx)
 
     # ------------------------------------------------------------------
@@ -413,9 +424,7 @@ class Category(commands.Cog):
 
         Examples:
             p!cat create Rares articuno, moltres, zapdos
-            p!cat create "Legendary Birds" articuno, moltres, zapdos
             p!cat create Furfrou furfrou all
-            p!cat create Arceus arceus all
         """
         pokemon_list, invalid = self.parse_pokemon_input(pokemon_input)
 
@@ -592,7 +601,7 @@ class Category(commands.Cog):
     @category_group.command(name="addpokemon", aliases=["addpoke"])
     @commands.has_permissions(administrator=True)
     async def category_addpokemon(self, ctx, name: str, *, pokemon_input: str):
-        """Add Pokémon to an existing category (Admin only) — appends, does not replace.
+        """Add Pokémon to an existing category (Admin only)
 
         Examples:
             p!cat addpokemon Rares marshadow, hoopa
@@ -644,8 +653,6 @@ class Category(commands.Cog):
     @commands.has_permissions(administrator=True)
     async def category_removepokemon(self, ctx, name: str, *, pokemon_input: str):
         """Remove specific Pokémon from an existing category (Admin only).
-
-        Does NOT delete the category — only removes the listed Pokémon.
 
         Examples:
             p!cat removepokemon Rares marshadow, hoopa
@@ -743,7 +750,8 @@ class Category(commands.Cog):
 
         if total_pages > 1:
             view = CategoryPaginationView(ctx.author.id, name, pokemon_list, 1, total_pages)
-            await ctx.reply(embed=view.create_embed(1), view=view, mention_author=False)
+            message = await ctx.reply(embed=view.create_embed(1), view=view, mention_author=False)
+            view.message = message
         else:
             embed = discord.Embed(
                 title=f"📦 Category: {name}",

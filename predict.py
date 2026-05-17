@@ -12,6 +12,7 @@ import hashlib
 import asyncio
 import gc
 import re
+from concurrent.futures import ThreadPoolExecutor
 from typing import Optional, Tuple
 
 # ---------------------------------------------------------------------------
@@ -37,23 +38,20 @@ def _ensure_heavy_imports():
 
 def _release_heavy_imports():
     """
-    Drop references to the heavy modules so Python can (partially) unload
-    their native memory.  onnxruntime's C++ allocator may keep a small pool,
-    but the bulk of session + model weights is freed by nullifying the sessions
-    before calling this.
+    Drop the module-level reference to onnxruntime.
+    numpy and PIL are intentionally LEFT in sys.modules — reimporting them
+    after unloading fragments glibc's allocator and causes the
+    'NumPy module was reloaded' warning you see in logs.
+
+    We do NOT pop onnxruntime from sys.modules either. The sessions are
+    already set to None before this is called, so the model weights are
+    freed. Repeatedly unloading/reloading native ML extension modules can
+    cause allocator fragmentation; keeping the module object in sys.modules
+    costs only a few KB and avoids the instability.
     """
-    global ort, np, Image
-    import sys
-    ort   = None
-    np    = None
-    Image = None
-    for mod_name in list(sys.modules.keys()):
-        if mod_name == 'onnxruntime' or mod_name.startswith('onnxruntime.'):
-            sys.modules.pop(mod_name, None)
-        elif mod_name == 'numpy' or mod_name.startswith('numpy.'):
-            sys.modules.pop(mod_name, None)
-        elif mod_name == 'PIL' or mod_name.startswith('PIL.'):
-            sys.modules.pop(mod_name, None)
+    global ort
+    ort = None
+    # np and Image are intentionally NOT touched here
 
 
 # Discord CDN URLs contain rotating query params (?ex=...&hm=...&is=...) that
@@ -110,7 +108,7 @@ SECONDARY_MODEL_POKEMON = {
 
 class PredictionCache:
     """Ultra-lightweight cache - ONLY stores final results"""
-    def __init__(self, max_size=100, ttl_seconds=300):  # 100 items, 5min TTL (Poketwo images expire anyway)
+    def __init__(self, max_size=100, ttl_seconds=60):  # 100 entries covers ~20s of heavy incense at 5 spawns/s
         self.cache = {}
         self.timestamps = {}
         self.max_size = max_size
@@ -245,7 +243,8 @@ class Prediction:
         self.secondary_class_names = None
         self.models_initialized = False
         self.allow_auto_load = False
-        self._cdn_semaphore = asyncio.Semaphore(3)  # max 3 CDN downloads in-flight at once
+        self._cdn_semaphore = asyncio.Semaphore(8)  # 8 concurrent CDN downloads — enough for 5 spawns/s with headroom
+        self._inference_pool = ThreadPoolExecutor(max_workers=2, thread_name_prefix="onnx")  # dedicated pool, never shared with bot I/O
         self._prediction_counter = 0
         self._loop = None  # cached event loop reference
 
@@ -351,6 +350,11 @@ class Prediction:
         self.cache.cache.clear()
         self.cache.timestamps.clear()
 
+        # Shut down and recreate the inference pool so any in-flight tasks
+        # finish cleanly and the threads are released before ORT unloads.
+        self._inference_pool.shutdown(wait=True)
+        self._inference_pool = ThreadPoolExecutor(max_workers=2, thread_name_prefix="onnx")
+
         # Release heavy native libraries so RAM returns to startup baseline.
         # Must be called AFTER sessions are nullified (above) so ORT's own
         # reference count drops to zero before we remove the module.
@@ -378,13 +382,23 @@ class Prediction:
     # Previously the slot was released before the HTTP request started,
     # meaning all concurrent downloads raced with no real cap.
     # ------------------------------------------------------------------
-    async def _fetch_raw_bytes(self, url: str, session: aiohttp.ClientSession, max_retries: int = 2) -> bytes:
+    async def _fetch_raw_bytes(self, url: str, session: aiohttp.ClientSession, max_retries: int = 1) -> bytes:
         """
-        Download image bytes once. max_retries reduced from 4 → 2 to avoid
-        long stalls on genuinely missing images (fix #3).
-        Semaphore caps concurrent CDN downloads to 3 for the full duration.
+        Download image bytes once. max_retries = 1 — at high spawn volume a
+        genuinely missing image should be dropped fast, not retried repeatedly
+        (2 retries on timeout = up to 20s stall per failed image).
+        Semaphore caps concurrent CDN downloads to 8 for the full duration.
         """
         is_discord_cdn = 'cdn.discordapp.com' in url or 'media.discordapp.net' in url
+
+        # Request a 256px thumbnail from Discord's CDN edge servers instead of
+        # the full-res image. Our model resizes to 224×224 anyway, so the extra
+        # pixels are pure wasted bandwidth. We APPEND &size=256 to preserve the
+        # existing auth params (ex=, hm=, is=) — stripping them causes 404s.
+        # _stable_cache_key() already strips query params before hashing, so
+        # the prediction cache key is unaffected by this change.
+        if is_discord_cdn and 'size=' not in url:
+            url = f"{url}&size=256" if '?' in url else f"{url}?size=256"
 
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
@@ -462,16 +476,21 @@ class Prediction:
         """
         Resize + normalise from already-downloaded bytes.
         Called twice (primary + secondary) with ZERO extra network I/O.
+        Temporary PIL image is explicitly closed and deleted after array
+        extraction to release native memory immediately rather than waiting
+        for GC — this is one of the main causes of RAM creep under heavy load.
         """
         img = Image.open(io.BytesIO(raw_bytes)).convert("RGB")
         img = img.resize((width, height), Image.BICUBIC)  # faster than LANCZOS, negligible quality diff for CNN
         image_array = np.array(img, dtype=np.float32)
         img.close()
+        del img  # release PIL internal buffer immediately
 
         image_array /= 255.0
         mean = np.array([0.485, 0.456, 0.406], dtype=np.float32)
         std  = np.array([0.229, 0.224, 0.225], dtype=np.float32)
         image_array = (image_array - mean) / std
+        del mean, std  # free small intermediates
         image_array = np.transpose(image_array, (2, 0, 1))
         image_array = np.expand_dims(image_array, axis=0)
         return image_array
@@ -495,14 +514,17 @@ class Prediction:
         probabilities = self.softmax(logits)
         prob = float(probabilities[pred_idx])
         name = class_names[pred_idx] if pred_idx < len(class_names) else f"unknown_{pred_idx}"
+
+        # Explicitly free numpy arrays — don't rely on GC
+        del outputs, logits, probabilities
         return name, prob
 
     async def predict_with_model(self, image, session,
                                   class_names: list) -> Tuple[str, float]:
-        """Async wrapper: offloads blocking inference to thread pool (fix #2)."""
+        """Async wrapper: offloads blocking inference to dedicated ONNX thread pool."""
         loop = self._loop or asyncio.get_event_loop()
         name, prob = await loop.run_in_executor(
-            None, self._run_inference, session, image, class_names
+            self._inference_pool, self._run_inference, session, image, class_names
         )
         return name, prob
 
@@ -525,7 +547,7 @@ class Prediction:
         if not self.models_initialized:
             raise RuntimeError(
                 "Prediction models are not loaded. "
-                "Use `!loadmodel` to load them before running predictions."
+                "Use `p!model load` to load them before running predictions."
             )
 
         if session is None:
@@ -548,7 +570,7 @@ class Prediction:
 
             # ── Step 1: always run primary first ────────────────────────────────
             primary_name, primary_prob = await loop.run_in_executor(
-                None, self._run_inference, self.primary_session, primary_image, self.primary_class_names
+                self._inference_pool, self._run_inference, self.primary_session, primary_image, self.primary_class_names
             )
             del primary_image
             primary_confidence_pct = primary_prob * 100
@@ -566,7 +588,7 @@ class Prediction:
             if needs_secondary:
                 secondary_image = self._preprocess_from_bytes(raw_bytes, 224, 224)
                 secondary_name, secondary_prob = await loop.run_in_executor(
-                    None, self._run_inference, self.secondary_session, secondary_image, self.secondary_class_names
+                    self._inference_pool, self._run_inference, self.secondary_session, secondary_image, self.secondary_class_names
                 )
                 del secondary_image
                 secondary_confidence_pct = secondary_prob * 100

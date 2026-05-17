@@ -325,6 +325,52 @@ class Database:
             self.gcache.invalidate_afk()
         return new_val
 
+    async def set_collection_afk(self, user_id: int, afk: bool) -> None:
+        """Directly set collection AFK state (used by admin force-afk)."""
+        if afk:
+            await self.db.collection_afk_users.update_one(
+                {"user_id": user_id},
+                {"$set": {"afk": True}},
+                upsert=True
+            )
+        else:
+            await self.db.collection_afk_users.delete_one({"user_id": user_id})
+        if self.gcache:
+            self.gcache.invalidate_afk()
+
+    async def set_shiny_hunt_afk(self, user_id: int, afk: bool) -> None:
+        """Directly set shiny hunt AFK state (used by admin force-afk)."""
+        if afk:
+            await self.db.shiny_hunt_afk_users.update_one(
+                {"user_id": user_id},
+                {"$set": {"afk": True}},
+                upsert=True
+            )
+        else:
+            await self.db.shiny_hunt_afk_users.delete_one({"user_id": user_id})
+        if self.gcache:
+            self.gcache.invalidate_afk()
+
+    async def set_type_ping_afk(self, user_id: int, afk: bool) -> None:
+        """Directly set type ping AFK state (used by admin force-afk)."""
+        await self.db.user_prefs.update_one(
+            {"user_id": user_id},
+            {"$set": {"type_ping_afk": afk}},
+            upsert=True
+        )
+        if self.gcache:
+            self.gcache.invalidate_afk()
+
+    async def set_region_ping_afk(self, user_id: int, afk: bool) -> None:
+        """Directly set region ping AFK state (used by admin force-afk)."""
+        await self.db.user_prefs.update_one(
+            {"user_id": user_id},
+            {"$set": {"region_ping_afk": afk}},
+            upsert=True
+        )
+        if self.gcache:
+            self.gcache.invalidate_afk()
+
     async def get_type_region_afk_users(self) -> dict:
         """Return {user_id: {'type': bool, 'region': bool}} for all users with any AFK set."""
         docs = await self.db.user_prefs.find(

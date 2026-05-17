@@ -98,7 +98,7 @@ def _region_embed(user: discord.User, enabled_regions: list[str]) -> discord.Emb
 # ---------------------------------------------------------------------------
 class TypePingView(discord.ui.View):
     def __init__(self, user_id: int, guild_id: int, enabled_types: list[str], cog):
-        super().__init__(timeout=300)
+        super().__init__(timeout=60)  # reduced from 300
         self.user_id = user_id
         self.guild_id = guild_id
         self.enabled_types = list(enabled_types)
@@ -200,13 +200,14 @@ class TypePingView(discord.ui.View):
 
     async def on_timeout(self):
         """Disable all buttons when the view expires."""
-        for item in self.children:
-            item.disabled = True
+        self.clear_items()
         if self._message:
             try:
                 await self._message.edit(view=self)
             except discord.HTTPException:
                 pass
+        self._message = None
+        self.cog = None
 
 
 # ---------------------------------------------------------------------------
@@ -214,7 +215,7 @@ class TypePingView(discord.ui.View):
 # ---------------------------------------------------------------------------
 class RegionPingView(discord.ui.View):
     def __init__(self, user_id: int, guild_id: int, enabled_regions: list[str], cog):
-        super().__init__(timeout=300)
+        super().__init__(timeout=60)  # reduced from 300
         self.user_id = user_id
         self.guild_id = guild_id
         self.enabled_regions = list(enabled_regions)
@@ -316,13 +317,14 @@ class RegionPingView(discord.ui.View):
 
     async def on_timeout(self):
         """Disable all buttons when the view expires."""
-        for item in self.children:
-            item.disabled = True
+        self.clear_items()
         if self._message:
             try:
                 await self._message.edit(view=self)
             except discord.HTTPException:
                 pass
+        self._message = None
+        self.cog = None
 
 
 # ---------------------------------------------------------------------------

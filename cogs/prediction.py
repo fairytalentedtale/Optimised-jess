@@ -149,7 +149,12 @@ class Prediction(commands.Cog):
         return self.bot.http_session
 
     def _create_bg_task(self, coro):
-        """Fire-and-forget a coroutine, keeping a reference so it isn't GC'd prematurely."""
+        """Fire-and-forget a coroutine, keeping a reference so it isn't GC'd prematurely.
+        Capped at 50 pending tasks — if exceeded the coro is dropped to prevent
+        discord.Message objects piling up in memory during heavy incense sessions."""
+        if len(self._bg_tasks) >= 50:
+            coro.close()  # discard cleanly without an 'never awaited' warning
+            return None
         task = asyncio.create_task(coro)
         self._bg_tasks.add(task)
         task.add_done_callback(self._bg_tasks.discard)
@@ -226,7 +231,7 @@ class Prediction(commands.Cog):
 
         search_names = [pokemon_name]
 
-        # ── Phase 2: all four ping lists concurrently ─────────────────────
+        # ── Phase 2: all ping lists concurrently (including reserves) ────────
         async def _get_shiny_hunters():
             raw = await self.gcache.get_shiny_hunters(guild_id, search_names, shiny_afk_set)
             return [
@@ -238,7 +243,7 @@ class Prediction(commands.Cog):
             regular = await self.gcache.get_collectors(guild_id, search_names, coll_afk_set)
             if is_rare:
                 # FIX: rare_collectors now runs inside this coroutine so
-                # the outer gather can still run all four concurrently
+                # the outer gather can still run all concurrently
                 rare = await self.gcache.get_rare_collectors(guild_id, coll_afk_set)
                 seen = set(regular)
                 for uid in rare:
@@ -253,12 +258,18 @@ class Prediction(commands.Cog):
         async def _get_region_pingers():
             return await self.gcache.get_region_pingers(guild_id, regions, region_afk_set)
 
-        hunters, collectors, type_pingers, rgn_pingers = await asyncio.gather(
+        async def _get_reserve_holders():
+            return await self.gcache.get_reserve_holders(guild_id, search_names, afk_snapshot.collection_afk)
+
+        hunters, collectors, type_pingers, rgn_pingers, reserve_holders = await asyncio.gather(
             _get_shiny_hunters(),
             _get_collectors(),
             _get_type_pingers(),
             _get_region_pingers(),
+            _get_reserve_holders(),
         )
+
+        is_reserved = len(reserve_holders) > 0
 
         # ── Phase 3: role pings from already-cached guild_settings ────────
         rare_ping     = None
@@ -278,10 +289,6 @@ class Prediction(commands.Cog):
                 regional_role_id = guild_settings.get('regional_role_id')
                 if regional_role_id:
                     regional_ping = f"<@&{regional_role_id}>"
-
-        # ── Phase 4: reserve check — if reserved, only reserve pings matter ──
-        reserve_holders = await self.gcache.get_reserve_holders(guild_id, [pokemon_name], afk_snapshot.collection_afk)
-        is_reserved = len(reserve_holders) > 0
 
         return {
             "hunters":        hunters,
@@ -305,9 +312,13 @@ class Prediction(commands.Cog):
         *,
         show_best_name: bool = False,
         show_catch_command: bool = False,
+        _preloaded_ping_data: dict = None,
     ) -> str:
         """
         Gather ALL ping data in a single batched call and build the output string.
+
+        Pass `_preloaded_ping_data` to skip a second fetch when the caller
+        already has it (e.g. from the only_pings gate in _run_prediction).
 
         Output order:
             <name>: <confidence>%
@@ -320,7 +331,8 @@ class Prediction(commands.Cog):
             Type Pings: @...
             Region Pings: @...
         """
-        ping_data = await self._get_all_ping_data(name, guild_id)
+        ping_data = _preloaded_ping_data if _preloaded_ping_data is not None \
+                    else await self._get_all_ping_data(name, guild_id)
 
         lines = [format_pokemon_prediction(name, confidence)]
 
@@ -358,36 +370,151 @@ class Prediction(commands.Cog):
         return "\n".join(lines)
 
     # ------------------------------------------------------------------
-    # Core predict helper (used by p!predict command)
+    # Unified prediction runner
     # ------------------------------------------------------------------
-    async def _predict_pokemon(self, image_url: str, guild_id: int) -> str:
-        if self.predictor is None:
-            return "Predictor not initialized, please try again later."
-        if self.http_session is None:
-            return "HTTP session not available."
+    async def _run_prediction(
+        self,
+        image_url: str,
+        message: discord.Message,
+        allowed_mentions: discord.AllowedMentions,
+        *,
+        reply: bool = False,
+        only_pings_check: bool = False,
+    ) -> None:
+        """
+        Run a prediction for `image_url` and send the result to `message.channel`.
+
+        Parameters
+        ----------
+        image_url         : URL of the image to predict.
+        message           : The Discord message that triggered the prediction.
+                            Used for channel, guild, reply target, and logging.
+        allowed_mentions  : Pass NO_MENTIONS for p!predict, SAFE_MENTIONS for auto-predict.
+        reply             : If True, reply to `message` instead of sending a new message.
+        only_pings_check  : If True, honour the guild's only_pings setting and skip
+                            sending if nobody has pings (used by Poketwo spawn detection).
+        """
+        if self.predictor is None or self.http_session is None:
+            return
 
         try:
-            name, confidence = await self.predictor.predict(image_url, self.http_session)
-            if hasattr(self.bot, 'prediction_count'):
-                self.bot.prediction_count += 1
+            # ── 1. Predict (cache-aware) ──────────────────────────────────
+            cache_key = self.predictor._generate_cache_key(image_url)
+            cached_result = self.predictor.cache.get(cache_key)
+
+            if cached_result:
+                name, confidence, model_used = cached_result
+            else:
+                name, confidence = await self.predictor.predict(image_url, self.http_session)
+                if hasattr(self.bot, 'prediction_count'):
+                    self.bot.prediction_count += 1
+                cached_result = self.predictor.cache.get(cache_key)
+                model_used = cached_result[2] if cached_result else "unknown"
 
             if not name or not confidence:
-                return "Could not predict Pokemon from the provided image."
+                return
 
-            guild_settings = await self.gcache.get_guild_settings(guild_id)
-            show_best = guild_settings.get('best_name_enabled', False)
+            # ── 2. Guild settings (cached) ────────────────────────────────
+            guild_settings = await self.gcache.get_guild_settings(message.guild.id)
+            show_best  = guild_settings.get('best_name_enabled', False)
             show_catch = guild_settings.get('catch_command_enabled', False)
-            return await self.build_prediction_output(name, confidence, guild_id, show_best_name=show_best, show_catch_command=show_catch)
+
+            # ── 3. only_pings gate (Poketwo spawns only) ──────────────────
+            if only_pings_check:
+                only_pings_enabled = guild_settings.get('only_pings', False)
+                ping_data = await self._get_all_ping_data(name, message.guild.id)
+                if not self.should_send_prediction_from_data(only_pings_enabled, ping_data):
+                    # Still do low-confidence + secondary logging even if suppressed
+                    self._maybe_log_low_confidence(name, confidence, message, image_url)
+                    self._create_bg_task(self.log_secondary_model_prediction(
+                        name, confidence, model_used, message, image_url
+                    ))
+                    return
+                output = await self.build_prediction_output(
+                    name, confidence, message.guild.id,
+                    show_best_name=show_best, show_catch_command=show_catch,
+                    _preloaded_ping_data=ping_data,
+                )
+            else:
+                output = await self.build_prediction_output(
+                    name, confidence, message.guild.id,
+                    show_best_name=show_best, show_catch_command=show_catch,
+                )
+
+            # ── 4. Send ───────────────────────────────────────────────────
+            if reply:
+                await message.reply(output, mention_author=False, allowed_mentions=allowed_mentions)
+            else:
+                await message.channel.send(output, allowed_mentions=allowed_mentions)
+
+            # ── 5. Low-confidence channel + secondary model logging ───────
+            self._maybe_log_low_confidence(name, confidence, message, image_url)
+            self._create_bg_task(self.log_secondary_model_prediction(
+                name, confidence, model_used, message, image_url
+            ))
 
         except ValueError as e:
             error_msg = str(e)
             if "404" in error_msg or "Failed to load image" in error_msg:
-                return "Image not accessible (likely expired or deleted)."
-            print(f"Prediction error: {e}")
-            return f"Error: {str(e)[:100]}"
+                print(f"[PREDICT] Image not accessible: {image_url[:100]}")
+            else:
+                print(f"[PREDICT] ValueError: {e}")
         except Exception as e:
-            print(f"Prediction error: {e}")
-            return f"Error: {str(e)[:100]}"
+            if "not loaded" not in str(e):
+                print(f"[PREDICT] Error: {e}")
+                import traceback
+                traceback.print_exc()
+
+    def _maybe_log_low_confidence(
+        self,
+        name: str,
+        confidence: str,
+        message: discord.Message,
+        image_url: str,
+    ) -> None:
+        """Fire-and-forget the low-confidence channel log if applicable."""
+        try:
+            confidence_value = float(str(confidence).rstrip('%'))
+        except ValueError:
+            return
+        if confidence_value < PREDICTION_CONFIDENCE:
+            self._create_bg_task(self._send_low_confidence_log(name, confidence, message, image_url))
+
+    async def _send_low_confidence_log(
+        self,
+        name: str,
+        confidence: str,
+        message: discord.Message,
+        image_url: str,
+    ) -> None:
+        low_channel_id = await self.db.get_low_prediction_channel()
+        if not low_channel_id:
+            return
+        low_channel = self.bot.get_channel(low_channel_id)
+        if not low_channel:
+            return
+
+        low_embed = discord.Embed(
+            title="Low Confidence Prediction",
+            description=(
+                f"**Pokemon:** {name}\n"
+                f"**Confidence:** {confidence}\n"
+                f"**Server:** {message.guild.name}\n"
+                f"**Channel:** {message.channel.mention}"
+            ),
+            color=0xff9900,
+        )
+        if image_url:
+            low_embed.set_thumbnail(url=image_url)
+
+        low_view = discord.ui.View()
+        low_view.add_item(discord.ui.Button(
+            label="Jump to Message",
+            url=message.jump_url,
+            emoji="🔗",
+            style=discord.ButtonStyle.link,
+        ))
+        await low_channel.send(embed=low_embed, view=low_view)
 
     # ------------------------------------------------------------------
     # should_send_prediction
@@ -433,6 +560,16 @@ class Prediction(commands.Cog):
         if not secondary_channel:
             return
 
+        # Extract everything we need from the message object immediately, then
+        # drop the reference so the large discord.Message (with guild/channel
+        # state, embeds, attachments) is not retained for the duration of this
+        # async function — especially important when the background task queue
+        # fills up during heavy incense sessions.
+        guild_name    = message.guild.name if message.guild else "Unknown"
+        channel_mention = message.channel.mention if message.channel else "Unknown"
+        jump_url      = message.jump_url
+        del message  # release discord.Message reference ASAP
+
         try:
             model_label = (
                 "Secondary Model (High Confidence)"
@@ -445,8 +582,8 @@ class Prediction(commands.Cog):
                 description=(
                     f"**Pokemon:** {name}\n"
                     f"**Confidence:** {confidence}\n"
-                    f"**Server:** {message.guild.name}\n"
-                    f"**Channel:** {message.channel.mention}"
+                    f"**Server:** {guild_name}\n"
+                    f"**Channel:** {channel_mention}"
                 ),
                 color=0x00bfff
             )
@@ -457,7 +594,7 @@ class Prediction(commands.Cog):
             view = discord.ui.View()
             view.add_item(discord.ui.Button(
                 label="Jump to Message",
-                url=message.jump_url,
+                url=jump_url,
                 emoji="🔗",
                 style=discord.ButtonStyle.link
             ))
@@ -495,8 +632,7 @@ class Prediction(commands.Cog):
             )
             return
 
-        result = await self._predict_pokemon(image_url, ctx.guild.id)
-        await ctx.reply(result, mention_author=False, allowed_mentions=NO_MENTIONS)
+        await self._run_prediction(image_url, ctx.message, NO_MENTIONS, reply=True)
 
     # ------------------------------------------------------------------
     # on_message listener
@@ -512,174 +648,29 @@ class Prediction(commands.Cog):
 
         # ---- Auto-predict channel ----------------------------------------
         if AUTO_PREDICT_CHANNEL_ID and message.channel.id == AUTO_PREDICT_CHANNEL_ID:
+            if not self.predictor.models_initialized:
+                return
             image_url = await self.extract_image_url(message)
-
             if image_url:
-                try:
-                    cache_key = self.predictor._generate_cache_key(image_url)
-                    cached_result = self.predictor.cache.get(cache_key)
-
-                    if cached_result:
-                        name, confidence, model_used = cached_result
-                    else:
-                        name, confidence = await self.predictor.predict(image_url, self.http_session)
-                        if hasattr(self.bot, 'prediction_count'):
-                            self.bot.prediction_count += 1
-                        cached_result = self.predictor.cache.get(cache_key)
-                        model_used = cached_result[2] if cached_result else "unknown"
-
-                    if name and confidence:
-                        guild_settings = await self.gcache.get_guild_settings(message.guild.id)
-                        show_best = guild_settings.get('best_name_enabled', False)
-                        show_catch = guild_settings.get('catch_command_enabled', False)
-                        output = await self.build_prediction_output(
-                            name, confidence, message.guild.id, show_best_name=show_best, show_catch_command=show_catch
-                        )
-                        await message.channel.send(output, allowed_mentions=NO_MENTIONS)
-
-                        self._create_bg_task(self.log_secondary_model_prediction(
-                            name, confidence, model_used, message, image_url
-                        ))
-
-                except ValueError as e:
-                    error_msg = str(e)
-                    if "404" in error_msg or "Failed to load image" in error_msg:
-                        print(f"[AUTO-PREDICT] Image not accessible: {image_url[:100]}")
-                    else:
-                        print(f"[AUTO-PREDICT] ValueError: {e}")
-                except Exception as e:
-                    print(f"[AUTO-PREDICT] Error: {e}")
-                    import traceback
-                    traceback.print_exc()
+                await self._run_prediction(image_url, message, NO_MENTIONS)
 
         # ---- Poketwo spawn detection in other channels --------------------
         elif message.author.id == POKETWO_USER_ID:
-            if message.embeds:
-                embed = message.embeds[0]
-                if embed.title:
-                    if (embed.title == "A wild pokémon has appeared!" or
-                            embed.title.endswith("A new wild pokémon has appeared!")):
-
-                        image_url = await self.extract_image_url(message)
-
-                        if image_url:
-                            try:
-                                cache_key = self.predictor._generate_cache_key(image_url)
-                                cached_result = self.predictor.cache.get(cache_key)
-
-                                if cached_result:
-                                    name, confidence, model_used = cached_result
-                                else:
-                                    name, confidence = await self.predictor.predict(image_url, self.http_session)
-                                    if hasattr(self.bot, 'prediction_count'):
-                                        self.bot.prediction_count += 1
-                                    cached_result = self.predictor.cache.get(cache_key)
-                                    model_used = cached_result[2] if cached_result else "unknown"
-
-                                if name and confidence:
-                                    confidence_str = str(confidence).rstrip('%')
-                                    try:
-                                        confidence_value = float(confidence_str)
-
-                                        # ── Fetch ping data; only_pings + best_name come
-                                        # from the already-cached guild_settings ────────
-                                        ping_data = await self._get_all_ping_data(name, message.guild.id)
-                                        guild_settings = await self.gcache.get_guild_settings(message.guild.id)
-                                        only_pings_enabled = guild_settings.get('only_pings', False)
-                                        show_best = guild_settings.get('best_name_enabled', False)
-                                        show_catch = guild_settings.get('catch_command_enabled', False)
-
-                                        should_send = self.should_send_prediction_from_data(
-                                            only_pings_enabled, ping_data
-                                        )
-
-                                        if should_send:
-                                            lines = [format_pokemon_prediction(name, confidence)]
-
-                                            if show_catch:
-                                                lines.append(f"`<@716390085896962058> c {name.lower()}`")
-
-                                            if show_best:
-                                                best = get_best_name(name)
-                                                if best:
-                                                    lines.append(f"Shortest Name: {best}")
-
-                                            # Reserve check: if reserved suppress all other pings
-                                            if ping_data["is_reserved"]:
-                                                reserve_mentions = " ".join([f"<@{uid}>" for uid in ping_data["reserve_holders"]])
-                                                lines.append(f"Reserve Pings: {reserve_mentions}")
-                                                lines.append("⚠️ **This Pokémon is reserved — please do not catch it!**")
-                                            else:
-                                                if ping_data["rare_ping"]:
-                                                    lines.append(f"Rare Ping: {ping_data['rare_ping']}")
-                                                if ping_data["regional_ping"]:
-                                                    lines.append(f"Regional Ping: {ping_data['regional_ping']}")
-                                                if ping_data["hunters"]:
-                                                    lines.append(f"Shiny Hunters: {' '.join(ping_data['hunters'])}")
-                                                if ping_data["collectors"]:
-                                                    collector_mentions = " ".join(
-                                                        [f"<@{uid}>" for uid in ping_data["collectors"]]
-                                                    )
-                                                    lines.append(f"Collectors: {collector_mentions}")
-                                                if ping_data["type_pingers"]:
-                                                    type_mentions = " ".join(
-                                                        [f"<@{uid}>" for uid in ping_data["type_pingers"]]
-                                                    )
-                                                    lines.append(f"Type Pings: {type_mentions}")
-                                                if ping_data["rgn_pingers"]:
-                                                    rgn_mentions = " ".join(
-                                                        [f"<@{uid}>" for uid in ping_data["rgn_pingers"]]
-                                                    )
-                                                    lines.append(f"Region Pings: {rgn_mentions}")
-
-                                            await message.channel.send(
-                                                "\n".join(lines),
-                                                allowed_mentions=SAFE_MENTIONS
-                                            )
-
-                                        # Low confidence channel
-                                        if confidence_value < PREDICTION_CONFIDENCE:
-                                            low_channel_id = await self.db.get_low_prediction_channel()
-                                            if low_channel_id:
-                                                low_channel = self.bot.get_channel(low_channel_id)
-                                                if low_channel:
-                                                    low_embed = discord.Embed(
-                                                        title="Low Confidence Prediction",
-                                                        description=(
-                                                            f"**Pokemon:** {name}\n"
-                                                            f"**Confidence:** {confidence}\n"
-                                                            f"**Server:** {message.guild.name}\n"
-                                                            f"**Channel:** {message.channel.mention}"
-                                                        ),
-                                                        color=0xff9900
-                                                    )
-                                                    if image_url:
-                                                        low_embed.set_thumbnail(url=image_url)
-
-                                                    low_view = discord.ui.View()
-                                                    low_view.add_item(discord.ui.Button(
-                                                        label="Jump to Message",
-                                                        url=message.jump_url,
-                                                        emoji="🔗",
-                                                        style=discord.ButtonStyle.link
-                                                    ))
-                                                    await low_channel.send(embed=low_embed, view=low_view)
-
-                                        self._create_bg_task(self.log_secondary_model_prediction(
-                                            name, confidence, model_used, message, image_url
-                                        ))
-
-                                    except ValueError:
-                                        print(f"Could not parse confidence value: {confidence}")
-
-                            except ValueError as e:
-                                error_msg = str(e)
-                                if "404" in error_msg or "Failed to load image" in error_msg:
-                                    print(f"[POKETWO-SPAWN] Image not accessible: {image_url[:100]}")
-                                else:
-                                    print(f"[POKETWO-SPAWN] ValueError: {e}")
-                            except Exception as e:
-                                print(f"Auto-detection error: {e}")
+            if not message.embeds:
+                return
+            embed = message.embeds[0]
+            if not embed.title:
+                return
+            if not (embed.title == "A wild pokémon has appeared!" or
+                    embed.title.endswith("A new wild pokémon has appeared!")):
+                return
+            if not self.predictor.models_initialized:
+                return
+            image_url = await self.extract_image_url(message)
+            if image_url:
+                await self._run_prediction(
+                    image_url, message, SAFE_MENTIONS, reply=True, only_pings_check=True
+                )
 
 
 async def setup(bot):
