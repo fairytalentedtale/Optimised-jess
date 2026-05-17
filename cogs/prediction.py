@@ -231,7 +231,7 @@ class Prediction(commands.Cog):
 
         search_names = [pokemon_name]
 
-        # ── Phase 2: all four ping lists concurrently ─────────────────────
+        # ── Phase 2: all ping lists concurrently (including reserves) ────────
         async def _get_shiny_hunters():
             raw = await self.gcache.get_shiny_hunters(guild_id, search_names, shiny_afk_set)
             return [
@@ -243,7 +243,7 @@ class Prediction(commands.Cog):
             regular = await self.gcache.get_collectors(guild_id, search_names, coll_afk_set)
             if is_rare:
                 # FIX: rare_collectors now runs inside this coroutine so
-                # the outer gather can still run all four concurrently
+                # the outer gather can still run all concurrently
                 rare = await self.gcache.get_rare_collectors(guild_id, coll_afk_set)
                 seen = set(regular)
                 for uid in rare:
@@ -258,12 +258,18 @@ class Prediction(commands.Cog):
         async def _get_region_pingers():
             return await self.gcache.get_region_pingers(guild_id, regions, region_afk_set)
 
-        hunters, collectors, type_pingers, rgn_pingers = await asyncio.gather(
+        async def _get_reserve_holders():
+            return await self.gcache.get_reserve_holders(guild_id, search_names, afk_snapshot.collection_afk)
+
+        hunters, collectors, type_pingers, rgn_pingers, reserve_holders = await asyncio.gather(
             _get_shiny_hunters(),
             _get_collectors(),
             _get_type_pingers(),
             _get_region_pingers(),
+            _get_reserve_holders(),
         )
+
+        is_reserved = len(reserve_holders) > 0
 
         # ── Phase 3: role pings from already-cached guild_settings ────────
         rare_ping     = None
@@ -283,10 +289,6 @@ class Prediction(commands.Cog):
                 regional_role_id = guild_settings.get('regional_role_id')
                 if regional_role_id:
                     regional_ping = f"<@&{regional_role_id}>"
-
-        # ── Phase 4: reserve check — if reserved, only reserve pings matter ──
-        reserve_holders = await self.gcache.get_reserve_holders(guild_id, [pokemon_name], afk_snapshot.collection_afk)
-        is_reserved = len(reserve_holders) > 0
 
         return {
             "hunters":        hunters,
