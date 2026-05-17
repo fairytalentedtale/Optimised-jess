@@ -12,6 +12,7 @@ import hashlib
 import asyncio
 import gc
 import re
+from concurrent.futures import ThreadPoolExecutor
 from typing import Optional, Tuple
 
 # ---------------------------------------------------------------------------
@@ -107,7 +108,7 @@ SECONDARY_MODEL_POKEMON = {
 
 class PredictionCache:
     """Ultra-lightweight cache - ONLY stores final results"""
-    def __init__(self, max_size=30, ttl_seconds=60):  # reduced from 100/300 — Discord CDN URLs expire anyway
+    def __init__(self, max_size=100, ttl_seconds=60):  # 100 entries covers ~20s of heavy incense at 5 spawns/s
         self.cache = {}
         self.timestamps = {}
         self.max_size = max_size
@@ -242,7 +243,8 @@ class Prediction:
         self.secondary_class_names = None
         self.models_initialized = False
         self.allow_auto_load = False
-        self._cdn_semaphore = asyncio.Semaphore(3)  # max 3 CDN downloads in-flight at once
+        self._cdn_semaphore = asyncio.Semaphore(8)  # 8 concurrent CDN downloads — enough for 5 spawns/s with headroom
+        self._inference_pool = ThreadPoolExecutor(max_workers=2, thread_name_prefix="onnx")  # dedicated pool, never shared with bot I/O
         self._prediction_counter = 0
         self._loop = None  # cached event loop reference
 
@@ -348,6 +350,11 @@ class Prediction:
         self.cache.cache.clear()
         self.cache.timestamps.clear()
 
+        # Shut down and recreate the inference pool so any in-flight tasks
+        # finish cleanly and the threads are released before ORT unloads.
+        self._inference_pool.shutdown(wait=True)
+        self._inference_pool = ThreadPoolExecutor(max_workers=2, thread_name_prefix="onnx")
+
         # Release heavy native libraries so RAM returns to startup baseline.
         # Must be called AFTER sessions are nullified (above) so ORT's own
         # reference count drops to zero before we remove the module.
@@ -375,11 +382,12 @@ class Prediction:
     # Previously the slot was released before the HTTP request started,
     # meaning all concurrent downloads raced with no real cap.
     # ------------------------------------------------------------------
-    async def _fetch_raw_bytes(self, url: str, session: aiohttp.ClientSession, max_retries: int = 2) -> bytes:
+    async def _fetch_raw_bytes(self, url: str, session: aiohttp.ClientSession, max_retries: int = 1) -> bytes:
         """
-        Download image bytes once. max_retries reduced from 4 → 2 to avoid
-        long stalls on genuinely missing images (fix #3).
-        Semaphore caps concurrent CDN downloads to 3 for the full duration.
+        Download image bytes once. max_retries = 1 — at high spawn volume a
+        genuinely missing image should be dropped fast, not retried repeatedly
+        (2 retries on timeout = up to 20s stall per failed image).
+        Semaphore caps concurrent CDN downloads to 8 for the full duration.
         """
         is_discord_cdn = 'cdn.discordapp.com' in url or 'media.discordapp.net' in url
 
@@ -513,10 +521,10 @@ class Prediction:
 
     async def predict_with_model(self, image, session,
                                   class_names: list) -> Tuple[str, float]:
-        """Async wrapper: offloads blocking inference to thread pool (fix #2)."""
+        """Async wrapper: offloads blocking inference to dedicated ONNX thread pool."""
         loop = self._loop or asyncio.get_event_loop()
         name, prob = await loop.run_in_executor(
-            None, self._run_inference, session, image, class_names
+            self._inference_pool, self._run_inference, session, image, class_names
         )
         return name, prob
 
@@ -562,7 +570,7 @@ class Prediction:
 
             # ── Step 1: always run primary first ────────────────────────────────
             primary_name, primary_prob = await loop.run_in_executor(
-                None, self._run_inference, self.primary_session, primary_image, self.primary_class_names
+                self._inference_pool, self._run_inference, self.primary_session, primary_image, self.primary_class_names
             )
             del primary_image
             primary_confidence_pct = primary_prob * 100
@@ -580,7 +588,7 @@ class Prediction:
             if needs_secondary:
                 secondary_image = self._preprocess_from_bytes(raw_bytes, 224, 224)
                 secondary_name, secondary_prob = await loop.run_in_executor(
-                    None, self._run_inference, self.secondary_session, secondary_image, self.secondary_class_names
+                    self._inference_pool, self._run_inference, self.secondary_session, secondary_image, self.secondary_class_names
                 )
                 del secondary_image
                 secondary_confidence_pct = secondary_prob * 100
