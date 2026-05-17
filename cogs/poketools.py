@@ -2,6 +2,7 @@
 import csv
 import io
 import math
+import re
 import datetime
 import discord
 import aiohttp
@@ -288,25 +289,10 @@ def _extract_objectid_from_embed(message: discord.Message) -> Optional[str]:
     return None
 
 
-def _build_date_embed(object_id: str, dt: datetime.datetime) -> discord.Embed:
-    """Build a rich embed displaying all date/time components of a Pokétwo ObjectID."""
+def _date_response_text(dt: datetime.datetime) -> str:
+    """Return a plain Discord timestamp string for a caught date."""
     unix_ts = int(dt.timestamp())
-
-    embed = discord.Embed(
-        title="🗓️ Pokémon Caught Date",
-        color=EMBED_COLOR,
-    )
-    embed.add_field(name="ObjectID",     value=f"`{object_id}`",                 inline=False)
-    embed.add_field(name="Date",         value=f"`{dt.strftime('%Y-%m-%d')}`",   inline=True)
-    embed.add_field(name="Time (UTC)",   value=f"`{dt.strftime('%H:%M:%S')}`",   inline=True)
-    embed.add_field(name="Year",         value=f"`{dt.year}`",                   inline=True)
-    embed.add_field(name="Month",        value=f"`{dt.strftime('%B')} ({dt.month:02d})`", inline=True)
-    embed.add_field(name="Day",          value=f"`{dt.day:02d}`",                inline=True)
-    embed.add_field(name="Seconds",      value=f"`{dt.second:02d}`",             inline=True)
-    embed.add_field(name="Unix Timestamp", value=f"`{unix_ts}`",                 inline=True)
-    embed.add_field(name="Discord Timestamp", value=f"<t:{unix_ts}:F>",          inline=True)
-    embed.set_footer(text="Date extracted from Pokétwo ObjectID (first 4 bytes = Unix timestamp)")
-    return embed
+    return f"<t:{unix_ts}:F>"
 
 
 # ------------------------------------------------------------------ #
@@ -652,7 +638,7 @@ class PokeTools(commands.Cog, name="PokeTools"):
             await interaction.followup.send(f"❌ Invalid ObjectID `{oid}`: {e}")
             return
 
-        await interaction.followup.send(embed=_build_date_embed(oid, dt))
+        await interaction.followup.send(_date_response_text(dt))
 
     @commands.command(name="date", aliases=["caught", "catchdate"])
     async def date_prefix(self, ctx: commands.Context, object_id: Optional[str] = None):
@@ -681,7 +667,98 @@ class PokeTools(commands.Cog, name="PokeTools"):
                 await ctx.send(f"❌ Invalid ObjectID `{oid}`: {e}")
                 return
 
-            await ctx.send(embed=_build_date_embed(oid, dt))
+            await ctx.send(_date_response_text(dt))
+
+    # ================================================================ #
+    #  Extract IDs                                                       #
+    # ================================================================ #
+
+    @staticmethod
+    def _extract_ids_from_embed(message: discord.Message) -> list[str]:
+        """
+        Extract Pokétwo pokémon/listing IDs from a message embed description.
+
+        Handles all known variants:
+          `39556693`　...          — marketplace (no padding)
+          ` 9593`　...             — pokémon list (space-padded)
+          **`586470`**　...        — bold-wrapped (gigantamax list)
+          `278531`　...            — MissingNo / standard list
+
+        Returns IDs in top-to-bottom order as plain strings (no padding).
+        """
+        ids = []
+        for embed in message.embeds:
+            desc = embed.description or ""
+            for line in desc.splitlines():
+                # Match the first backtick-wrapped token on the line, optionally inside **
+                # Captures: **`  123`** or `123` or ` 123`
+                m = re.match(r"^\*{0,2}`\s*(\d+)`\*{0,2}", line.strip())
+                if m:
+                    ids.append(m.group(1))
+        return ids
+
+    @app_commands.command(
+        name="extractids",
+        description="Extract Pokétwo pokémon/listing IDs from an embed.",
+    )
+    async def extractids_slash(self, interaction: discord.Interaction, message_id: str):
+        await interaction.response.defer()
+
+        try:
+            mid = int(message_id)
+        except ValueError:
+            await interaction.followup.send("❌ `message_id` must be a valid integer ID.")
+            return
+
+        msg = await _resolve_message(interaction.channel, mid)
+        if msg is None:
+            await interaction.followup.send(f"❌ Could not find message `{mid}` in this channel.")
+            return
+
+        ids = self._extract_ids_from_embed(msg)
+        if not ids:
+            await interaction.followup.send("❌ No Pokétwo IDs found in that message's embeds.")
+            return
+
+        await interaction.followup.send(" ".join(ids))
+
+    @commands.command(name="extractids", aliases=["extract", "eids"])
+    async def extractids_prefix(self, ctx: commands.Context, message_id: Optional[int] = None):
+        """
+        Extract Pokétwo pokémon/listing IDs from an embed, space-separated.
+
+        Usage:
+          p!extractids          — reply to a Pokétwo embed
+          p!extractids <id>     — provide the message ID directly
+
+        Aliases: p!extract, p!eids
+        """
+        async with ctx.typing():
+            # Resolve target message
+            if message_id is not None:
+                msg = await _resolve_message(ctx.channel, message_id)
+                if msg is None:
+                    await ctx.send(f"❌ Could not find message `{message_id}` in this channel.")
+                    return
+            elif ctx.message.reference and ctx.message.reference.message_id:
+                msg = await _resolve_message(ctx.channel, ctx.message.reference.message_id)
+                if msg is None:
+                    await ctx.send("❌ Could not fetch the replied-to message.")
+                    return
+            else:
+                await ctx.send(
+                    "❌ Usage:\n"
+                    "• Reply to a Pokétwo embed with `p!extractids`\n"
+                    "• Or provide the message ID: `p!extractids <id>`"
+                )
+                return
+
+            ids = self._extract_ids_from_embed(msg)
+            if not ids:
+                await ctx.send("❌ No Pokétwo IDs found in that message's embeds.")
+                return
+
+            await ctx.send(" ".join(ids))
 
     # ================================================================ #
     #  Owner utilities                                                   #
@@ -726,9 +803,26 @@ async def date_context_menu(interaction: discord.Interaction, message: discord.M
         await interaction.followup.send(f"❌ Invalid ObjectID `{oid}`: {e}", ephemeral=True)
         return
 
-    await interaction.followup.send(embed=_build_date_embed(oid, dt), ephemeral=True)
+    await interaction.followup.send(_date_response_text(dt), ephemeral=True)
+
+
+@app_commands.context_menu(name="Extract IDs")
+async def extractids_context_menu(interaction: discord.Interaction, message: discord.Message):
+    """Right-click a Pokétwo pokémon list or marketplace embed to extract all IDs."""
+    await interaction.response.defer(ephemeral=True)
+
+    ids = PokeTools._extract_ids_from_embed(message)
+    if not ids:
+        await interaction.followup.send(
+            "❌ No Pokétwo IDs found in that message's embeds.",
+            ephemeral=True,
+        )
+        return
+
+    await interaction.followup.send(" ".join(ids), ephemeral=True)
 
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(PokeTools(bot))
     bot.tree.add_command(date_context_menu)
+    bot.tree.add_command(extractids_context_menu)
