@@ -2,6 +2,7 @@
 import csv
 import io
 import math
+import datetime
 import discord
 import aiohttp
 from discord import app_commands
@@ -251,6 +252,60 @@ def _build_timediff_embed(msg1: discord.Message, msg2: discord.Message) -> disco
     embed.add_field(name="\u200b", value="\u200b", inline=True)  # spacer
     embed.add_field(name="Seconds",      value=f"`{seconds_str}`",   inline=True)
     embed.add_field(name="Milliseconds", value=f"`{total_ms:,} ms`", inline=True)
+    return embed
+
+
+# ------------------------------------------------------------------ #
+#  Pokétwo ObjectID → date helpers                                     #
+# ------------------------------------------------------------------ #
+
+def _objectid_to_datetime(object_id: str) -> datetime.datetime:
+    """
+    Extract the creation timestamp from a MongoDB ObjectID string.
+    The first 8 hex characters encode a Unix timestamp (big-endian uint32).
+    Returns a timezone-aware UTC datetime.
+    """
+    if len(object_id) < 8:
+        raise ValueError(f"ObjectID too short: {object_id!r}")
+    unix_ts = int(object_id[:8], 16)
+    return datetime.datetime.fromtimestamp(unix_ts, tz=datetime.timezone.utc)
+
+
+def _extract_objectid_from_embed(message: discord.Message) -> Optional[str]:
+    """
+    Search all embeds on a message for a Pokétwo-style footer containing
+    'ID: <objectid>'.  Returns the ObjectID string, or None if not found.
+    """
+    for embed in message.embeds:
+        footer_text = embed.footer.text or ""
+        # Footer format: "Displaying pokémon XXXXX. ID: <objectid>"
+        if "ID:" in footer_text:
+            parts = footer_text.split("ID:")
+            if len(parts) >= 2:
+                oid = parts[-1].strip()
+                if oid:
+                    return oid
+    return None
+
+
+def _build_date_embed(object_id: str, dt: datetime.datetime) -> discord.Embed:
+    """Build a rich embed displaying all date/time components of a Pokétwo ObjectID."""
+    unix_ts = int(dt.timestamp())
+
+    embed = discord.Embed(
+        title="🗓️ Pokémon Caught Date",
+        color=EMBED_COLOR,
+    )
+    embed.add_field(name="ObjectID",     value=f"`{object_id}`",                 inline=False)
+    embed.add_field(name="Date",         value=f"`{dt.strftime('%Y-%m-%d')}`",   inline=True)
+    embed.add_field(name="Time (UTC)",   value=f"`{dt.strftime('%H:%M:%S')}`",   inline=True)
+    embed.add_field(name="Year",         value=f"`{dt.year}`",                   inline=True)
+    embed.add_field(name="Month",        value=f"`{dt.strftime('%B')} ({dt.month:02d})`", inline=True)
+    embed.add_field(name="Day",          value=f"`{dt.day:02d}`",                inline=True)
+    embed.add_field(name="Seconds",      value=f"`{dt.second:02d}`",             inline=True)
+    embed.add_field(name="Unix Timestamp", value=f"`{unix_ts}`",                 inline=True)
+    embed.add_field(name="Discord Timestamp", value=f"<t:{unix_ts}:F>",          inline=True)
+    embed.set_footer(text="Date extracted from Pokétwo ObjectID (first 4 bytes = Unix timestamp)")
     return embed
 
 
@@ -542,6 +597,115 @@ class PokeTools(commands.Cog, name="PokeTools"):
             await ctx.send(embed=_build_timediff_embed(msg_a, msg_b))
 
     # ================================================================ #
+    #  Pokétwo caught date (ObjectID to timestamp)                       #
+    # ================================================================ #
+
+    def _resolve_date_target(
+        self,
+        object_id: Optional[str],
+        replied_message: Optional[discord.Message],
+    ) -> tuple:
+        """
+        Return (object_id_str, error_str).
+        Priority: explicit object_id arg -> reply embed -> error.
+        """
+        if object_id:
+            return object_id.strip(), None
+
+        if replied_message is not None:
+            oid = _extract_objectid_from_embed(replied_message)
+            if oid:
+                return oid, None
+            return None, (
+                "❌ The replied message has no Pokétwo ObjectID in its embed footer.\n"
+                "Make sure you reply to a Pokétwo `p!info` / `p!pokemon` embed."
+            )
+
+        return None, (
+            "❌ Usage:\n"
+            "• Reply to a Pokétwo embed with `p!date`\n"
+            "• Or provide the ObjectID directly: `p!date <objectid>`"
+        )
+
+    @app_commands.command(
+        name="date",
+        description="Show the caught date of a Pokémon from its Pokétwo ObjectID.",
+    )
+    @app_commands.describe(
+        object_id="The Pokétwo ObjectID (from the embed footer). Leave blank when replying to a Pokétwo embed.",
+    )
+    async def date_slash(
+        self,
+        interaction: discord.Interaction,
+        object_id: Optional[str] = None,
+    ):
+        await interaction.response.defer()
+
+        oid, error = self._resolve_date_target(object_id, None)
+        if error:
+            await interaction.followup.send(error)
+            return
+
+        try:
+            dt = _objectid_to_datetime(oid)
+        except (ValueError, OverflowError) as e:
+            await interaction.followup.send(f"❌ Invalid ObjectID `{oid}`: {e}")
+            return
+
+        await interaction.followup.send(embed=_build_date_embed(oid, dt))
+
+    @commands.command(name="date", aliases=["caught", "catchdate"])
+    async def date_prefix(self, ctx: commands.Context, object_id: Optional[str] = None):
+        """
+        Show the caught date/time of a Pokémon from its Pokétwo ObjectID.
+
+        Usage:
+          p!date <objectid>   — provide the ObjectID directly
+          p!date              — reply to a Pokétwo embed; the ObjectID is read from the footer
+
+        Aliases: p!caught, p!catchdate
+        """
+        async with ctx.typing():
+            replied_msg: Optional[discord.Message] = None
+            if ctx.message.reference and ctx.message.reference.message_id:
+                replied_msg = await _resolve_message(ctx.channel, ctx.message.reference.message_id)
+
+            oid, error = self._resolve_date_target(object_id, replied_msg)
+            if error:
+                await ctx.send(error)
+                return
+
+            try:
+                dt = _objectid_to_datetime(oid)
+            except (ValueError, OverflowError) as e:
+                await ctx.send(f"❌ Invalid ObjectID `{oid}`: {e}")
+                return
+
+            await ctx.send(embed=_build_date_embed(oid, dt))
+
+    @app_commands.context_menu(name="Get Caught Date")
+    async def date_context_menu(self, interaction: discord.Interaction, message: discord.Message):
+        """Right-click a Pokétwo embed to extract the caught date from its ObjectID."""
+        await interaction.response.defer(ephemeral=True)
+
+        oid = _extract_objectid_from_embed(message)
+        if not oid:
+            await interaction.followup.send(
+                "❌ This message has no Pokétwo ObjectID in its embed footer.\n"
+                "Make sure you right-click a Pokétwo `p!info` / `p!pokemon` embed.",
+                ephemeral=True,
+            )
+            return
+
+        try:
+            dt = _objectid_to_datetime(oid)
+        except (ValueError, OverflowError) as e:
+            await interaction.followup.send(f"❌ Invalid ObjectID `{oid}`: {e}", ephemeral=True)
+            return
+
+        await interaction.followup.send(embed=_build_date_embed(oid, dt), ephemeral=True)
+
+    # ================================================================ #
     #  Owner utilities                                                   #
     # ================================================================ #
 
@@ -565,4 +729,7 @@ class PokeTools(commands.Cog, name="PokeTools"):
 
 
 async def setup(bot: commands.Bot):
-    await bot.add_cog(PokeTools(bot))
+    cog = PokeTools(bot)
+    await bot.add_cog(cog)
+    # Register the context menu command so Discord sees it as a top-level app command
+    bot.tree.add_command(cog.date_context_menu)
